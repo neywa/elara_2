@@ -425,7 +425,7 @@ class _StoryScreenState extends State<StoryScreen> {
                       Text(
                         currentStory["text"],
                         style: const TextStyle(
-                          fontSize: 22, // Slightly larger for readability
+                          fontSize: 16, // Slightly larger for readability
                           height: 1.6, // Book-style line spacing
                           letterSpacing: 0.3, // Subtle breathing room between letters
                           color: Color(0xFF3E2723), // Deep dark brown instead of harsh pure black
@@ -434,38 +434,46 @@ class _StoryScreenState extends State<StoryScreen> {
                       ),
                       const SizedBox(height: 35),
                       
-                      // --- THE BUTTONS ---
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      // --- THE BUTTONS (Stacked vertically for long text) ---
+                      Column(
+                        // This makes the buttons stretch across the whole text box!
+                        crossAxisAlignment: CrossAxisAlignment.stretch, 
                         children: [
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white,
                               foregroundColor: const Color(0xFF3E2723),
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                              elevation: 2, // Gives the buttons a tiny drop shadow
+                              // Added a bit more vertical padding so multi-line text fits nicely
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                              elevation: 2,
                             ),
                             onPressed: () => _makeChoice(currentStory["nextIndex1"]),
                             child: Text(
                               currentStory["choice1"],
-                              style: const TextStyle(fontSize: 16, letterSpacing: 0.5),
+                              style: const TextStyle(fontSize: 16, height: 1.4, letterSpacing: 0.5),
+                              textAlign: TextAlign.center, // Centers the text inside the wide button
                             ),
                           ),
                           
-                          if (currentStory.containsKey("choice2"))
+                          // If there is a second choice, draw a spacer and the second button
+                          if (currentStory.containsKey("choice2")) ...[
+                            const SizedBox(height: 16), // The gap between the two stacked buttons
+                            
                             ElevatedButton(
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.white,
                                 foregroundColor: const Color(0xFF3E2723),
-                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                                 elevation: 2,
                               ),
                               onPressed: () => _makeChoice(currentStory["nextIndex2"]),
                               child: Text(
                                 currentStory["choice2"],
-                                style: const TextStyle(fontSize: 16, letterSpacing: 0.5),
+                                style: const TextStyle(fontSize: 16, height: 1.4, letterSpacing: 0.5),
+                                textAlign: TextAlign.center,
                               ),
                             ),
+                          ],
                         ],
                       ),
                     ],

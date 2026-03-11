@@ -218,18 +218,37 @@ class StoryScreen extends StatefulWidget {
   State<StoryScreen> createState() => _StoryScreenState();
 }
 
-class _StoryScreenState extends State<StoryScreen> {
+class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStateMixin {
+  
+  bool _isUiVisible = true;
+
+  // Our new, absolute-control animation variables
+  late AnimationController _fadeController;
+  late Animation<double> _fadeAnimation;
+
   // This integer tracks where we are in the story.
   int currentIndex = 0;
 
-  bool _isUiVisible = true; // Add this to track if the text is showing
-
+  
   
 
   @override
   void initState() {
     super.initState();
-    _loadProgress(); 
+    
+    // 1. Set up the absolute 1-second timer
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    );
+    
+    // 2. Make the fade smooth
+    _fadeAnimation = CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeInOut,
+    );
+
+    _loadProgress();
   }
 
   // Updated toggle function using global variables
@@ -248,36 +267,73 @@ class _StoryScreenState extends State<StoryScreen> {
   // Function to softly hide or show the story text
   void _toggleUi() {
     setState(() {
-      _isUiVisible = !_isUiVisible;
+      _isUiVisible = !_isUiVisible; // Flips the true/false tracker
+      
+      if (_isUiVisible) {
+        _fadeController.forward(); // Smoothly fade the text IN
+      } else {
+        _fadeController.reverse(); // Smoothly fade the text OUT
+      }
     });
   }
 
     // It is good practice to stop the player when the app is completely closed
   @override
   void dispose() {
-      super.dispose();
+    // Cleans up the animation controller so it doesn't leak memory
+    _fadeController.dispose(); 
+    
+    // Always call super.dispose at the very end!
+    super.dispose();
   }
 
   // Function to load the saved progress
   Future<void> _loadProgress() async {
     final prefs = await SharedPreferences.getInstance();
+    
     setState(() {
-      // If there is no saved progress, default to 0
       currentIndex = prefs.getInt('storyIndex') ?? 100;
+      _isUiVisible = false; // Tell the app the UI is currently hidden
     });
+    
+    _fadeController.value = 0.0; // INSTANTLY set opacity to 0
+
+    await Future.delayed(const Duration(seconds: 1));
+    
+    if (mounted) {
+      setState(() {
+        _isUiVisible = true; // Tell the app the UI is back
+      });
+      _fadeController.forward(); // Play the 1-second fade-in!
+    }
   }
 
   // Function to save progress and update the screen
-  Future<void> _makeChoice(int nextIndex) async {
+  // Notice the 'async' keyword added here!
+  void _makeChoice(int nextIndex) async {
+    setState(() {
+      _isUiVisible = false; // Tracker: UI is gone
+      currentIndex = nextIndex; // Instantly change background
+    });
+    
+    _fadeController.value = 0.0; // INSTANTLY hide the text
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('storyIndex', nextIndex);
-    
+
+    // Let the naked background sit there for 1 second
+    await Future.delayed(const Duration(seconds: 2));
+
+    if (!mounted) return;
+
     setState(() {
-      currentIndex = nextIndex;
+      _isUiVisible = true; // Tracker: UI is back
     });
+    
+    _fadeController.forward(); // Play the 1-second fade-in!
   }
 
-  @override
+    @override
   Widget build(BuildContext context) {
     // Get the current story node based on the currentIndex
     final currentStory = storyData[currentIndex];
@@ -385,10 +441,8 @@ class _StoryScreenState extends State<StoryScreen> {
           ),
           
           // 3. The Semi-Transparent Text Area at the bottom
-          AnimatedOpacity(
-            // Fades to 1.0 (fully visible) or 0.0 (completely invisible)
-            opacity: _isUiVisible ? 1.0 : 0.0, 
-            duration: const Duration(milliseconds: 500), // Half-second smooth fade
+          FadeTransition(
+            opacity: _fadeAnimation,
             child: IgnorePointer(
               // Prevents clicking the invisible story buttons when UI is hidden
               ignoring: !_isUiVisible, 

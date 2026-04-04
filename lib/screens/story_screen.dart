@@ -17,7 +17,7 @@ class StoryScreen extends StatefulWidget {
   State<StoryScreen> createState() => _StoryScreenState();
 }
 
-class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStateMixin {
+class _StoryScreenState extends State<StoryScreen> with TickerProviderStateMixin {
   bool _isUiVisible = true;
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
@@ -27,6 +27,8 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
   final AudioPlayer _sfxPlayer = AudioPlayer();
   bool _canScrollDown = false;
   bool _isAudioPanelOpen = false;
+  late AnimationController _audioPanelController;
+  late Animation<double> _audioPanelAnimation;
 
   AudioService get _audio => widget.audioService;
 
@@ -61,6 +63,16 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
       curve: Curves.easeInOut,
     );
 
+    _audioPanelController = AnimationController(
+      vsync: this,
+      duration: kFadeDuration,
+    );
+
+    _audioPanelAnimation = CurvedAnimation(
+      parent: _audioPanelController,
+      curve: Curves.easeInOut,
+    );
+
     _textScrollController.addListener(_updateScrollFade);
     _loadProgress();
   }
@@ -92,8 +104,20 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
   }
 
   void _toggleAudioPanel() {
-    setState(() {
-      _isAudioPanelOpen = !_isAudioPanelOpen;
+    if (_isAudioPanelOpen) {
+      _audioPanelController.reverse().then((_) {
+        if (mounted) setState(() => _isAudioPanelOpen = false);
+      });
+    } else {
+      setState(() => _isAudioPanelOpen = true);
+      _audioPanelController.forward();
+    }
+  }
+
+  void _closeAudioPanel() {
+    if (!_isAudioPanelOpen) return;
+    _audioPanelController.reverse().then((_) {
+      if (mounted) setState(() => _isAudioPanelOpen = false);
     });
   }
 
@@ -112,6 +136,7 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
   @override
   void dispose() {
     _fadeController.dispose();
+    _audioPanelController.dispose();
     _textScrollController.dispose();
     _sfxPlayer.dispose();
     super.dispose();
@@ -241,7 +266,17 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
           Positioned.fill(
             child: GestureDetector(
               onTap: () {
-                if (!_isUiVisible) _toggleUi();
+                if (_isAudioPanelOpen || _isUiVisible) {
+                  _closeAudioPanel();
+                  if (_isUiVisible) {
+                    setState(() {
+                      _isUiVisible = false;
+                      _fadeController.reverse();
+                    });
+                  }
+                } else {
+                  _toggleUi();
+                }
               },
               child: AnimatedSwitcher(
                 duration: kFadeDuration,
@@ -267,30 +302,34 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (_isAudioPanelOpen)
-                      Container(
-                        margin: const EdgeInsets.only(right: 8),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.black54,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _panelToggle(
-                              icon: Icons.music_note,
-                              label: 'Music',
-                              isEnabled: _audio.isMusicPlaying,
-                              onPressed: _toggleMusic,
-                            ),
-                            const SizedBox(width: 12),
-                            _panelToggle(
-                              icon: Icons.spatial_audio_off,
-                              label: 'SFX',
-                              isEnabled: _audio.isSfxEnabled,
-                              onPressed: _toggleSfx,
-                            ),
-                          ],
+                      FadeTransition(
+                        opacity: _audioPanelAnimation,
+                        child: Container(
+                          height: 48,
+                          margin: const EdgeInsets.only(right: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _panelToggle(
+                                icon: Icons.music_note,
+                                tooltip: 'Toggle music',
+                                isEnabled: _audio.isMusicPlaying,
+                                onPressed: _toggleMusic,
+                              ),
+                              const SizedBox(width: 2),
+                              _panelToggle(
+                                icon: Icons.spatial_audio_off,
+                                tooltip: 'Toggle sound effects',
+                                isEnabled: _audio.isSfxEnabled,
+                                onPressed: _toggleSfx,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     _circleIconButton(
@@ -301,12 +340,6 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
                       onPressed: _toggleAudioPanel,
                     ),
                   ],
-                ),
-                const SizedBox(height: 10),
-                _circleIconButton(
-                  icon: _isUiVisible ? Icons.visibility : Icons.visibility_off,
-                  tooltip: _isUiVisible ? 'Hide story text' : 'Show story text',
-                  onPressed: _toggleUi,
                 ),
                 const SizedBox(height: 10),
                 _circleIconButton(
@@ -324,7 +357,10 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
               ignoring: !_isUiVisible,
               child: Align(
                 alignment: Alignment.bottomCenter,
-                child: Container(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onTap: _toggleUi,
+                  child: Container(
                   constraints: BoxConstraints(
                     maxHeight: MediaQuery.of(context).size.height * kStoryPanelMaxHeightRatio,
                   ),
@@ -390,6 +426,7 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
                 ),
               ),
             ),
+          ),
           ),
         ],
       ),
@@ -476,30 +513,20 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
 
   Widget _panelToggle({
     required IconData icon,
-    required String label,
     required bool isEnabled,
+    required String tooltip,
     required VoidCallback onPressed,
   }) {
-    return GestureDetector(
-      onTap: onPressed,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            color: isEnabled ? Colors.white : Colors.white38,
-            size: 20,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: isEnabled ? Colors.white : Colors.white38,
-              fontSize: 13,
-            ),
-          ),
-        ],
+    return IconButton(
+      tooltip: tooltip,
+      constraints: const BoxConstraints(),
+      padding: EdgeInsets.zero,
+      iconSize: 24,
+      icon: Icon(
+        icon,
+        color: isEnabled ? Colors.white : Colors.white38,
       ),
+      onPressed: onPressed,
     );
   }
 

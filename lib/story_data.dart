@@ -5,7 +5,7 @@ import 'chapter_3.dart';
 
 final Map<int, Map<String, dynamic>> _rawStoryData = {
   0: {
-    "image": "assets/images/title.jpg",
+    "image": "assets/images/elara_menu.jpg",
     "nextIndex1": 100,
     "en": {
       "text": "Welcome to Aura of Gold.",

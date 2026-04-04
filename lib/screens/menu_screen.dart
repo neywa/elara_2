@@ -245,68 +245,77 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
             ),
           ),
 
+          Align(
+            alignment: const Alignment(0.0, -0.67),
+            child: const Text(
+              "Aura of Gold",
+              style: TextStyle(
+                fontSize: 48,
+                color: Colors.white,
+                letterSpacing: 2.0,
+                shadows: [
+                  Shadow(
+                    blurRadius: 10.0,
+                    color: Colors.black87,
+                    offset: Offset(2, 2),
+                  ),
+                ],
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+
           Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text(
-                  "Aura of Gold",
-                  style: TextStyle(
-                    fontSize: 48,
-                    color: Colors.white,
-                    letterSpacing: 2.0,
-                    shadows: [
-                      Shadow(
-                        blurRadius: 10.0,
-                        color: Colors.black87,
-                        offset: Offset(2, 2),
-                      ),
+                IntrinsicWidth(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (!_isSettingsMenuOpen) ...[
+                        if (_hasSavedGame) ...[
+                          _menuButton(
+                            label: ui('continue', _currentLang),
+                            onPressed: () => _startGame(isNewGame: false),
+                          ),
+                          const SizedBox(height: 20),
+                        ],
+                        _menuButton(
+                          label: ui('newGame', _currentLang),
+                          onPressed: () => _startGame(isNewGame: true),
+                        ),
+                        const SizedBox(height: 20),
+                        _menuButton(
+                          label: ui('settings', _currentLang),
+                          onPressed: () => setState(() => _isSettingsMenuOpen = true),
+                        ),
+                        const SizedBox(height: 20),
+                        _menuButton(
+                          label: ui('exitGame', _currentLang),
+                          onPressed: () => SystemNavigator.pop(),
+                        ),
+                      ] else ...[
+                        _menuButton(
+                          label: languageNames[_currentLang] ?? _currentLang,
+                          onPressed: _toggleLanguage,
+                        ),
+                        const SizedBox(height: 20),
+                        _menuButton(
+                          label: _audio.artFocusMode
+                              ? ui('artFocus', _currentLang)
+                              : ui('storyFocus', _currentLang),
+                          onPressed: _toggleArtMode,
+                        ),
+                        const SizedBox(height: 20),
+                        _menuButton(
+                          label: ui('back', _currentLang),
+                          onPressed: () => setState(() => _isSettingsMenuOpen = false),
+                        ),
+                      ],
                     ],
                   ),
-                  textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 80),
-
-                if (!_isSettingsMenuOpen) ...[
-                  if (_hasSavedGame) ...[
-                    _menuButton(
-                      label: ui('continue', _currentLang),
-                      onPressed: () => _startGame(isNewGame: false),
-                    ),
-                    const SizedBox(height: 20),
-                  ],
-                  _menuButton(
-                    label: ui('newGame', _currentLang),
-                    onPressed: () => _startGame(isNewGame: true),
-                  ),
-                  const SizedBox(height: 20),
-                  _menuButton(
-                    label: ui('settings', _currentLang),
-                    onPressed: () => setState(() => _isSettingsMenuOpen = true),
-                  ),
-                  const SizedBox(height: 20),
-                  _menuButton(
-                    label: ui('exitGame', _currentLang),
-                    onPressed: () => SystemNavigator.pop(),
-                  ),
-                ] else ...[
-                  _menuButton(
-                    label: languageNames[_currentLang] ?? _currentLang,
-                    onPressed: _toggleLanguage,
-                  ),
-                  const SizedBox(height: 20),
-                  _menuButton(
-                    label: _audio.artFocusMode
-                        ? ui('artFocus', _currentLang)
-                        : ui('storyFocus', _currentLang),
-                    onPressed: _toggleArtMode,
-                  ),
-                  const SizedBox(height: 20),
-                  _menuButton(
-                    label: ui('back', _currentLang),
-                    onPressed: () => setState(() => _isSettingsMenuOpen = false),
-                  ),
-                ],
               ],
             ),
           ),
@@ -321,6 +330,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
         backgroundColor: Colors.white.withValues(alpha: 0.9),
         foregroundColor: kDarkBrown,
         padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+        side: const BorderSide(color: kDarkBrown, width: 1),
       ),
       onPressed: () {
         _playMenuSfx();

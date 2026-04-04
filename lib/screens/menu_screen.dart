@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:audioplayers/audioplayers.dart';
 import '../constants.dart';
 import '../services/audio_service.dart';
 import 'story_screen.dart';
@@ -21,6 +22,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
   bool _isAudioPanelOpen = false;
   late AnimationController _audioPanelController;
   late Animation<double> _audioPanelAnimation;
+  final AudioPlayer _sfxPlayer = AudioPlayer();
 
   AudioService get _audio => widget.audioService;
 
@@ -45,7 +47,17 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
   @override
   void dispose() {
     _audioPanelController.dispose();
+    _sfxPlayer.dispose();
     super.dispose();
+  }
+
+  void _playMenuSfx() {
+    if (!_audio.isSfxEnabled) return;
+    try {
+      _sfxPlayer.play(AssetSource('audio/menu.mp3'));
+    } catch (e) {
+      debugPrint('Error playing menu SFX: $e');
+    }
   }
 
   void _toggleLanguage() async {
@@ -60,9 +72,15 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
     }
   }
 
-  void _toggleMusic() {
+  void _toggleMusic() async {
     _audio.toggleMusic();
     setState(() {});
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(kMusicEnabledKey, _audio.isMusicPlaying);
+    } catch (e) {
+      debugPrint('Error saving music preference: $e');
+    }
   }
 
   void _toggleSfx() async {
@@ -98,6 +116,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
         _currentLang = prefs.getString(kLanguageKey) ?? 'en';
         _audio.artFocusMode = prefs.getBool(kArtFocusModeKey) ?? false;
         _audio.isSfxEnabled = prefs.getBool(kSfxEnabledKey) ?? true;
+        _audio.isMusicPlaying = prefs.getBool(kMusicEnabledKey) ?? true;
         if (savedIndex > kStartingNodeIndex) {
           _hasSavedGame = true;
         }
@@ -298,7 +317,10 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
         foregroundColor: kDarkBrown,
         padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
       ),
-      onPressed: onPressed,
+      onPressed: () {
+        _playMenuSfx();
+        onPressed();
+      },
       child: Text(label, style: const TextStyle(fontSize: 20)),
     );
   }

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'constants.dart';
 import 'services/audio_service.dart';
-import 'screens/menu_screen.dart';
+import 'screens/splash_screen.dart';
 
 final audioService = AudioService();
 
@@ -50,7 +50,7 @@ class _VisualNovelAppState extends State<VisualNovelApp> with WidgetsBindingObse
         scaffoldBackgroundColor: kOldLace,
         fontFamily: 'StoryFont',
       ),
-      home: MainMenuScreen(audioService: audioService),
+      home: SplashScreen(audioService: audioService),
     );
   }
 }

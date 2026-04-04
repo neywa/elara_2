@@ -85,9 +85,15 @@ class _StoryScreenState extends State<StoryScreen> with TickerProviderStateMixin
     }
   }
 
-  void _toggleMusic() {
+  void _toggleMusic() async {
     _audio.toggleMusic();
     setState(() {});
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(kMusicEnabledKey, _audio.isMusicPlaying);
+    } catch (e) {
+      debugPrint('Error saving music preference: $e');
+    }
   }
 
   void _toggleSfx() async {
@@ -198,6 +204,7 @@ class _StoryScreenState extends State<StoryScreen> with TickerProviderStateMixin
   }
 
   void _makeChoice(int nextIndex) async {
+    _sfxPlayer.stop();
     _fadeController.value = 0.0;
     setState(() {
       _isUiVisible = false;

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:audioplayers/audioplayers.dart';
+import '../constants.dart';
 import '../models/story_node.dart';
 import '../services/audio_service.dart';
 import '../story_data.dart';
@@ -50,7 +51,7 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
 
     _fadeController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 1),
+      duration: kFadeDuration,
     );
 
     _fadeAnimation = CurvedAnimation(
@@ -102,7 +103,7 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
   Future<void> _showUiAfterDelay() async {
     if (_audio.artFocusMode) return;
 
-    await Future.delayed(const Duration(milliseconds: 1500));
+    await Future.delayed(kUiRevealDelay);
     if (!mounted) return;
 
     setState(() {
@@ -117,15 +118,15 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
 
       if (!mounted) return;
       setState(() {
-        _currentIndex = prefs.getInt('storyIndex') ?? 100;
-        _currentLang = prefs.getString('language') ?? 'en';
+        _currentIndex = prefs.getInt(kStoryIndexKey) ?? kStartingNodeIndex;
+        _currentLang = prefs.getString(kLanguageKey) ?? 'en';
         _isUiVisible = false;
       });
     } catch (e) {
       debugPrint('Error loading progress: $e');
       if (!mounted) return;
       setState(() {
-        _currentIndex = 100;
+        _currentIndex = kStartingNodeIndex;
         _isUiVisible = false;
       });
     }
@@ -146,7 +147,7 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
       _isUiVisible = false;
     });
 
-    await Future.delayed(const Duration(seconds: 1));
+    await Future.delayed(kTransitionDelay);
     if (!mounted) return;
 
     setState(() {
@@ -164,7 +165,7 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt('storyIndex', nextIndex);
+      await prefs.setInt(kStoryIndexKey, nextIndex);
     } catch (e) {
       debugPrint('Error saving story progress: $e');
     }
@@ -175,7 +176,7 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
   Future<void> _returnToMenu() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt('storyIndex', 100);
+      await prefs.setInt(kStoryIndexKey, kStartingNodeIndex);
     } catch (e) {
       debugPrint('Error resetting story progress: $e');
     }
@@ -209,13 +210,14 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
                 if (!_isUiVisible) _toggleUi();
               },
               child: AnimatedSwitcher(
-                duration: const Duration(seconds: 1),
+                duration: kFadeDuration,
                 child: Image.asset(
                   node.image,
                   key: ValueKey<String>(node.image),
                   fit: BoxFit.cover,
                   width: double.infinity,
                   height: double.infinity,
+                  semanticLabel: 'Story illustration',
                 ),
               ),
             ),
@@ -228,16 +230,19 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
               children: [
                 _circleIconButton(
                   icon: _audio.isMusicPlaying ? Icons.volume_up : Icons.volume_off,
+                  tooltip: _audio.isMusicPlaying ? 'Mute music' : 'Unmute music',
                   onPressed: _toggleMusic,
                 ),
                 const SizedBox(height: 10),
                 _circleIconButton(
                   icon: _isUiVisible ? Icons.visibility : Icons.visibility_off,
+                  tooltip: _isUiVisible ? 'Hide story text' : 'Show story text',
                   onPressed: _toggleUi,
                 ),
                 const SizedBox(height: 10),
                 _circleIconButton(
                   icon: Icons.exit_to_app,
+                  tooltip: 'Exit app',
                   onPressed: () => SystemNavigator.pop(),
                 ),
               ],
@@ -252,22 +257,22 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
                 alignment: Alignment.bottomCenter,
                 child: Container(
                   constraints: BoxConstraints(
-                    maxHeight: MediaQuery.of(context).size.height * 0.75,
+                    maxHeight: MediaQuery.of(context).size.height * kStoryPanelMaxHeightRatio,
                   ),
                   width: double.infinity,
                   padding: const EdgeInsets.fromLTRB(32.0, 40.0, 32.0, 40.0),
                   decoration: BoxDecoration(
-                    color: const Color(0xEEFDF5E6),
+                    color: kPanelBackground,
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(24),
                       topRight: Radius.circular(24),
                     ),
                     border: Border(
-                      top: BorderSide(color: Colors.brown.withOpacity(0.2), width: 1.5),
+                      top: BorderSide(color: Colors.brown.withValues(alpha: 0.2), width: 1.5),
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
+                        color: Colors.black.withValues(alpha: 0.3),
                         blurRadius: 20,
                         offset: const Offset(0, -5),
                       ),
@@ -298,7 +303,7 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
                                 fontSize: 16,
                                 height: 1.6,
                                 letterSpacing: 0.3,
-                                color: Color(0xFF3E2723),
+                                color: kDarkBrown,
                               ),
                               textAlign: TextAlign.center,
                             ),
@@ -320,7 +325,7 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
 
   Widget _buildEndScreen() {
     return Scaffold(
-      backgroundColor: const Color(0xFFFDF5E6),
+      backgroundColor: kOldLace,
       body: Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 40.0),
@@ -334,7 +339,7 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
                 style: const TextStyle(
                   fontSize: 22,
                   fontFamily: 'StoryFont',
-                  color: Color(0xFF3E2723),
+                  color: kDarkBrown,
                   height: 1.4,
                 ),
                 textAlign: TextAlign.center,
@@ -343,7 +348,7 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
-                  foregroundColor: const Color(0xFF3E2723),
+                  foregroundColor: kDarkBrown,
                   padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                   elevation: 3,
                 ),
@@ -383,7 +388,7 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF3E2723),
+        foregroundColor: kDarkBrown,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         elevation: 2,
       ),
@@ -396,13 +401,18 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
     );
   }
 
-  Widget _circleIconButton({required IconData icon, required VoidCallback onPressed}) {
+  Widget _circleIconButton({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onPressed,
+  }) {
     return Container(
       decoration: const BoxDecoration(
         color: Colors.black45,
         shape: BoxShape.circle,
       ),
       child: IconButton(
+        tooltip: tooltip,
         icon: Icon(icon, color: Colors.white),
         onPressed: onPressed,
       ),

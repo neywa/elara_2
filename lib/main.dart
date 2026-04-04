@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'constants.dart';
 import 'services/audio_service.dart';
 import 'screens/menu_screen.dart';
 
@@ -19,7 +20,7 @@ class VisualNovelApp extends StatelessWidget {
     return MaterialApp(
       title: 'Relaxing Story',
       theme: ThemeData(
-        scaffoldBackgroundColor: const Color(0xFFFDF5E6),
+        scaffoldBackgroundColor: kOldLace,
         fontFamily: 'StoryFont',
       ),
       home: MainMenuScreen(audioService: audioService),

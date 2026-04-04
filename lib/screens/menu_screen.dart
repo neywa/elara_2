@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../constants.dart';
 import '../services/audio_service.dart';
 import 'story_screen.dart';
 
@@ -24,7 +25,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   void initState() {
     super.initState();
     _checkSavedProgress();
-    _audio.changeMusic('bg_music_day_1.mp3');
+    _audio.changeMusic(kMenuMusicTrack);
   }
 
   void _toggleLanguage() async {
@@ -33,7 +34,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     });
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('language', _currentLang);
+      await prefs.setString(kLanguageKey, _currentLang);
     } catch (e) {
       debugPrint('Error saving language preference: $e');
     }
@@ -47,13 +48,13 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   Future<void> _checkSavedProgress() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final savedIndex = prefs.getInt('storyIndex') ?? 100;
+      final savedIndex = prefs.getInt(kStoryIndexKey) ?? kStartingNodeIndex;
 
       if (!mounted) return;
       setState(() {
-        _currentLang = prefs.getString('language') ?? 'en';
-        _audio.artFocusMode = prefs.getBool('artFocusMode') ?? false;
-        if (savedIndex > 100) {
+        _currentLang = prefs.getString(kLanguageKey) ?? 'en';
+        _audio.artFocusMode = prefs.getBool(kArtFocusModeKey) ?? false;
+        if (savedIndex > kStartingNodeIndex) {
           _hasSavedGame = true;
         }
       });
@@ -68,7 +69,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     });
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('artFocusMode', _audio.artFocusMode);
+      await prefs.setBool(kArtFocusModeKey, _audio.artFocusMode);
     } catch (e) {
       debugPrint('Error saving art mode preference: $e');
     }
@@ -78,7 +79,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     try {
       if (isNewGame) {
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setInt('storyIndex', 100);
+        await prefs.setInt(kStoryIndexKey, kStartingNodeIndex);
       }
     } catch (e) {
       debugPrint('Error saving new game state: $e');
@@ -102,11 +103,12 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
             child: Image.asset(
               'assets/images/title.jpg',
               fit: BoxFit.cover,
+              semanticLabel: 'Title screen background showing the Golden Valley',
             ),
           ),
 
           Positioned.fill(
-            child: Container(color: Colors.black.withOpacity(0.3)),
+            child: Container(color: Colors.black.withValues(alpha: 0.3)),
           ),
 
           Positioned(
@@ -118,6 +120,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                 shape: BoxShape.circle,
               ),
               child: IconButton(
+                tooltip: _audio.isMusicPlaying ? 'Mute music' : 'Unmute music',
                 icon: Icon(
                   _audio.isMusicPlaying ? Icons.volume_up : Icons.volume_off,
                   color: Colors.white,
@@ -200,8 +203,8 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   Widget _menuButton({required String label, required VoidCallback onPressed}) {
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.white.withOpacity(0.9),
-        foregroundColor: const Color(0xFF3E2723),
+        backgroundColor: Colors.white.withValues(alpha: 0.9),
+        foregroundColor: kDarkBrown,
         padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
       ),
       onPressed: onPressed,

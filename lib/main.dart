@@ -12,8 +12,35 @@ void main() {
   runApp(const VisualNovelApp());
 }
 
-class VisualNovelApp extends StatelessWidget {
+class VisualNovelApp extends StatefulWidget {
   const VisualNovelApp({super.key});
+
+  @override
+  State<VisualNovelApp> createState() => _VisualNovelAppState();
+}
+
+class _VisualNovelAppState extends State<VisualNovelApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    audioService.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
+      audioService.musicPlayer.pause();
+    } else if (state == AppLifecycleState.resumed && audioService.isMusicPlaying) {
+      audioService.musicPlayer.resume();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

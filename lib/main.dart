@@ -1,19 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:flutter/services.dart'; // Adds SystemChrome and SystemNavigator
+import 'package:flutter/services.dart'; 
 import 'story_data.dart';
 
 final AudioPlayer globalAudioPlayer = AudioPlayer();
 bool globalIsMusicPlaying = true;
+String currentMusicTrack = ''; 
+bool globalArtFocusMode = false; 
+
+// A universal function to seamlessly swap music tracks
+Future<void> changeGlobalMusic(String trackName) async {
+  if (currentMusicTrack == trackName) return;
+
+  currentMusicTrack = trackName;
+  try {
+    await globalAudioPlayer.stop();
+    await globalAudioPlayer.setReleaseMode(ReleaseMode.loop);
+
+    if (globalIsMusicPlaying) {
+      await globalAudioPlayer.play(AssetSource('audio/$trackName'));
+    }
+  } catch (e) {
+    debugPrint('Error changing music to $trackName: $e');
+  }
+}
 
 void main() {
-  // Required when we talk to the system before the app runs
   WidgetsFlutterBinding.ensureInitialized(); 
-
-  // Tells Android to hide the top and bottom system bars
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-
   runApp(const VisualNovelApp());
 }
 
@@ -25,10 +40,8 @@ class VisualNovelApp extends StatelessWidget {
     return MaterialApp(
       title: 'Relaxing Story',
       theme: ThemeData(
-        // The soft Old Lace background color
         scaffoldBackgroundColor: const Color(0xFFFDF5E6),
-        // Setting a global serif font for a paper/book feel
-        fontFamily: 'Serif', 
+        fontFamily: 'StoryFont', 
       ),
       home: const MainMenuScreen(),
     );
@@ -44,56 +57,86 @@ class MainMenuScreen extends StatefulWidget {
 
 class _MainMenuScreenState extends State<MainMenuScreen> {
   bool _hasSavedGame = false;
+  String _currentLang = 'en';
+  bool _isSettingsMenuOpen = false;
 
   @override
   void initState() {
     super.initState();
     _checkSavedProgress();
-    _startMusic(); // Start the music as soon as the menu loads!
+    
+    // Using our new robust audio function for the menu music!
+    changeGlobalMusic('bg_music_day_1.mp3');
   }
 
-  // Toggles the global music from the Main Menu
-  void _toggleMusic() {
-    if (globalIsMusicPlaying) {
-      globalAudioPlayer.pause();
-    } else {
-      globalAudioPlayer.resume();
+  void _toggleLanguage() async {
+    setState(() {
+      _currentLang = (_currentLang == 'en') ? 'cs' : 'en';
+    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('language', _currentLang);
+    } catch (e) {
+      debugPrint('Error saving language preference: $e');
     }
-    
+  }
+
+  void _toggleMusic() {
+    try {
+      if (globalIsMusicPlaying) {
+        globalAudioPlayer.pause();
+      } else {
+        globalAudioPlayer.resume();
+      }
+    } catch (e) {
+      debugPrint('Error toggling music: $e');
+    }
+
     setState(() {
       globalIsMusicPlaying = !globalIsMusicPlaying;
     });
   }
 
-  // The function to loop and play the music
-  Future<void> _startMusic() async {
-    await globalAudioPlayer.setReleaseMode(ReleaseMode.loop);
-    if (globalIsMusicPlaying) {
-      await globalAudioPlayer.play(AssetSource('audio/bg_music.mp3'));
-    }
-  }
-
-  // Check if the player has progressed past the starting node (Node 100)
   Future<void> _checkSavedProgress() async {
-    final prefs = await SharedPreferences.getInstance();
-    // Assuming 100 is the start of Chapter 1 based on our new structure
-    final savedIndex = prefs.getInt('storyIndex') ?? 100; 
-    
-    if (savedIndex > 100) {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedIndex = prefs.getInt('storyIndex') ?? 100;
+
+      if (!mounted) return;
       setState(() {
-        _hasSavedGame = true;
+        _currentLang = prefs.getString('language') ?? 'en';
+        globalArtFocusMode = prefs.getBool('artFocusMode') ?? false;
+        if (savedIndex > 100) {
+          _hasSavedGame = true;
+        }
       });
+    } catch (e) {
+      debugPrint('Error loading saved progress: $e');
     }
   }
 
-  // Handle starting or continuing the game
-  Future<void> _startGame({required bool isNewGame}) async {
-    if (isNewGame) {
+  void _toggleArtMode() async {
+    setState(() {
+      globalArtFocusMode = !globalArtFocusMode;
+    });
+    try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt('storyIndex', 100); // Wipe progress and start at Chapter 1
+      await prefs.setBool('artFocusMode', globalArtFocusMode);
+    } catch (e) {
+      debugPrint('Error saving art mode preference: $e');
+    }
+  }
+
+  Future<void> _startGame({required bool isNewGame}) async {
+    try {
+      if (isNewGame) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setInt('storyIndex', 100);
+      }
+    } catch (e) {
+      debugPrint('Error saving new game state: $e');
     }
 
-      // Navigate to the actual story screen
     if (!mounted) return;
     Navigator.pushReplacement(
       context,
@@ -106,7 +149,6 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // Background Image
           Positioned.fill(
             child: Image.asset(
               'assets/images/title.jpg',
@@ -114,12 +156,10 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
             ),
           ),
           
-          // Dark overlay to make text pop
           Positioned.fill(
             child: Container(color: Colors.black.withOpacity(0.3)),
           ),
 
-          // 3. The Mute Button (Top Right)
           Positioned(
             top: 40,
             right: 20,
@@ -143,7 +183,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Your Game Title
+                // Your Game Title stays at the top of both menus!
                 const Text(
                   "Aura of Gold",
                   style: TextStyle(
@@ -162,46 +202,113 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                 ),
                 const SizedBox(height: 80),
 
-                // Continue Button (Only shows if they have a save!)
-                if (_hasSavedGame) ...[
+                // --- CHECK WHICH MENU TO SHOW ---
+                if (!_isSettingsMenuOpen) ...[
+                  // ==========================================
+                  //                 MAIN MENU
+                  // ==========================================
+                  if (_hasSavedGame) ...[
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white.withOpacity(0.9),
+                        foregroundColor: const Color(0xFF3E2723),
+                        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                      ),
+                      onPressed: () => _startGame(isNewGame: false),
+                      child: Text(_currentLang == 'en' ? "Continue" : "Pokračovat", style: const TextStyle(fontSize: 20)),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white.withOpacity(0.9),
                       foregroundColor: const Color(0xFF3E2723),
                       padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
                     ),
-                    onPressed: () => _startGame(isNewGame: false),
-                    child: const Text("Continue", style: TextStyle(fontSize: 20)),
+                    onPressed: () => _startGame(isNewGame: true),
+                    child: Text(_currentLang == 'en' ? "New Game" : "Nová hra", style: const TextStyle(fontSize: 20)),
                   ),
                   const SizedBox(height: 20),
-                ],
+                  
+                  // --- THE NEW SETTINGS BUTTON ---
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white.withOpacity(0.9),
+                      foregroundColor: const Color(0xFF3E2723),
+                      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _isSettingsMenuOpen = true; // Opens the sub-menu!
+                      });
+                    },
+                    child: Text(_currentLang == 'en' ? "Settings" : "Nastavení", style: const TextStyle(fontSize: 20)),
+                  ),
+                  const SizedBox(height: 20),
 
-                // New Game Button
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white.withOpacity(0.9),
-                    foregroundColor: const Color(0xFF3E2723),
-                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white.withOpacity(0.9),
+                      foregroundColor: const Color(0xFF3E2723),
+                      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                    ),
+                    onPressed: () {
+                      SystemNavigator.pop(); 
+                    },
+                    child: Text(_currentLang == 'en' ? "Exit Game" : "Ukončit hru", style: const TextStyle(fontSize: 20)),
                   ),
-                  onPressed: () => _startGame(isNewGame: true),
-                  child: const Text("New Game", style: TextStyle(fontSize: 20)),
-                ),
-                
-                const SizedBox(height: 20),
-                
-                // Exit Game Button
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white.withOpacity(0.9),
-                    foregroundColor: const Color(0xFF3E2723),
-                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+
+                ] else ...[
+                  // ==========================================
+                  //                SETTINGS MENU
+                  // ==========================================
+                  // --- THE NEW LANGUAGE BUTTON ---
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white.withOpacity(0.9),
+                      foregroundColor: const Color(0xFF3E2723),
+                      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                    ),
+                    onPressed: _toggleLanguage,
+                    child: Text(
+                      _currentLang == 'en' ? "Language: English" : "Jazyk: Čeština", 
+                      style: const TextStyle(fontSize: 20),
+                    ),
                   ),
-                  onPressed: () {
-                    // Tells the operating system to close the app
-                    SystemNavigator.pop(); 
-                  },
-                  child: const Text("Exit Game", style: TextStyle(fontSize: 20)),
-                ),
+                  const SizedBox(height: 20),
+                  
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white.withOpacity(0.9),
+                      foregroundColor: const Color(0xFF3E2723),
+                      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                    ),
+                    onPressed: _toggleArtMode,
+                    child: Text(
+                      _currentLang == 'en' 
+                          ? (globalArtFocusMode ? "Mode: Art Focus" : "Mode: Story Focus")
+                          : (globalArtFocusMode ? "Režim: Obraz" : "Režim: Příběh"),
+                      style: const TextStyle(fontSize: 20),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // --- THE BACK BUTTON ---
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white.withOpacity(0.9),
+                      foregroundColor: const Color(0xFF3E2723),
+                      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _isSettingsMenuOpen = false; // Closes the sub-menu!
+                      });
+                    },
+                    child: Text(_currentLang == 'en' ? "Back" : "Zpět", style: const TextStyle(fontSize: 20)),
+                  ),
+                ],
               ],
             ),
           ),
@@ -219,30 +326,40 @@ class StoryScreen extends StatefulWidget {
 }
 
 class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStateMixin {
-  
   bool _isUiVisible = true;
-
-  // Our new, absolute-control animation variables
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
-
-  // This integer tracks where we are in the story.
   int currentIndex = 0;
-
+  String _currentLang = 'en'; 
+  final ScrollController _textScrollController = ScrollController();
+  final AudioPlayer _sfxPlayer = AudioPlayer();
   
-  
-
   @override
   void initState() {
     super.initState();
+
+    final gameAudioContext = AudioContext(
+      android: const AudioContextAndroid(
+        isSpeakerphoneOn: false,
+        stayAwake: false,
+        contentType: AndroidContentType.music,
+        usageType: AndroidUsageType.game,
+        audioFocus: AndroidAudioFocus.none, 
+      ),
+      iOS: AudioContextIOS(
+        category: AVAudioSessionCategory.playback,
+        options: const {AVAudioSessionOptions.mixWithOthers}, 
+      ),
+    );
+
+    AudioPlayer.global.setAudioContext(gameAudioContext);
+    _sfxPlayer.setAudioContext(gameAudioContext);
     
-    // 1. Set up the absolute 1-second timer
     _fadeController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 1),
     );
     
-    // 2. Make the fade smooth
     _fadeAnimation = CurvedAnimation(
       parent: _fadeController,
       curve: Curves.easeInOut,
@@ -251,145 +368,236 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
     _loadProgress();
   }
 
-  // Updated toggle function using global variables
   void _toggleMusic() {
-    if (globalIsMusicPlaying) {
-      globalAudioPlayer.pause(); 
-    } else {
-      globalAudioPlayer.resume(); 
+    try {
+      if (globalIsMusicPlaying) {
+        globalAudioPlayer.pause();
+      } else {
+        globalAudioPlayer.resume();
+      }
+    } catch (e) {
+      debugPrint('Error toggling music: $e');
     }
-    
+
     setState(() {
-      globalIsMusicPlaying = !globalIsMusicPlaying; 
+      globalIsMusicPlaying = !globalIsMusicPlaying;
     });
   }
   
-  // Function to softly hide or show the story text
   void _toggleUi() {
     setState(() {
-      _isUiVisible = !_isUiVisible; // Flips the true/false tracker
+      _isUiVisible = !_isUiVisible; 
       
       if (_isUiVisible) {
-        _fadeController.forward(); // Smoothly fade the text IN
+        _fadeController.forward(); 
       } else {
-        _fadeController.reverse(); // Smoothly fade the text OUT
+        _fadeController.reverse(); 
       }
     });
   }
 
-    // It is good practice to stop the player when the app is completely closed
   @override
   void dispose() {
-    // Cleans up the animation controller so it doesn't leak memory
-    _fadeController.dispose(); 
-    
-    // Always call super.dispose at the very end!
+    _fadeController.dispose();
+    _textScrollController.dispose();
+    _sfxPlayer.dispose();
     super.dispose();
   }
 
-  // Function to load the saved progress
   Future<void> _loadProgress() async {
-    final prefs = await SharedPreferences.getInstance();
-    
-    setState(() {
-      currentIndex = prefs.getInt('storyIndex') ?? 100;
-      _isUiVisible = false; // Tell the app the UI is currently hidden
-    });
-    
-    _fadeController.value = 0.0; // INSTANTLY set opacity to 0
+    try {
+      final prefs = await SharedPreferences.getInstance();
 
-    await Future.delayed(const Duration(seconds: 1));
-    
-    if (mounted) {
+      if (!mounted) return;
       setState(() {
-        _isUiVisible = true; // Tell the app the UI is back
+        currentIndex = prefs.getInt('storyIndex') ?? 100;
+        _currentLang = prefs.getString('language') ?? 'en';
+        _isUiVisible = false;
       });
-      _fadeController.forward(); // Play the 1-second fade-in!
+    } catch (e) {
+      debugPrint('Error loading progress: $e');
+      if (!mounted) return;
+      setState(() {
+        currentIndex = 100;
+        _isUiVisible = false;
+      });
+    }
+
+    _fadeController.value = 0.0;
+
+    final startingNode = storyData[currentIndex];
+
+    if (startingNode != null) {
+      final Map<String, dynamic> safeNode = startingNode;
+
+      try {
+        if (safeNode.containsKey("sfx")) {
+          await _sfxPlayer.play(AssetSource('audio/${safeNode["sfx"]}'));
+        }
+        if (safeNode.containsKey("music")) {
+          await changeGlobalMusic(safeNode["music"]);
+        }
+      } catch (e) {
+        debugPrint('Error playing audio on load: $e');
+      }
+    }
+
+    if (!globalArtFocusMode) {
+      await Future.delayed(const Duration(milliseconds: 1500));
+      if (!mounted) return;
+
+      setState(() {
+        _isUiVisible = true;
+      });
+      _fadeController.forward();
     }
   }
 
-  // Function to save progress and update the screen
-  // Notice the 'async' keyword added here!
   void _makeChoice(int nextIndex) async {
+    _fadeController.value = 0.0;
     setState(() {
-      _isUiVisible = false; // Tracker: UI is gone
-      currentIndex = nextIndex; // Instantly change background
+      _isUiVisible = false;
     });
-    
-    _fadeController.value = 0.0; // INSTANTLY hide the text
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('storyIndex', nextIndex);
-
-    // Let the naked background sit there for 1 second
-    await Future.delayed(const Duration(seconds: 2));
-
+    await Future.delayed(const Duration(seconds: 1));
     if (!mounted) return;
 
     setState(() {
-      _isUiVisible = true; // Tracker: UI is back
+      currentIndex = nextIndex;
     });
-    
-    _fadeController.forward(); // Play the 1-second fade-in!
+
+    final nextNode = storyData[nextIndex];
+
+    if (nextNode != null) {
+      final Map<String, dynamic> safeNode = nextNode;
+
+      try {
+        if (safeNode.containsKey("sfx")) {
+          await _sfxPlayer.play(AssetSource('audio/${safeNode["sfx"]}'));
+        }
+        if (safeNode.containsKey("music")) {
+          await changeGlobalMusic(safeNode["music"]);
+        }
+      } catch (e) {
+        debugPrint('Error playing audio on choice: $e');
+      }
+    }
+
+    if (_textScrollController.hasClients) {
+      _textScrollController.jumpTo(0.0);
+    }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('storyIndex', nextIndex);
+    } catch (e) {
+      debugPrint('Error saving story progress: $e');
+    }
+
+    if (!globalArtFocusMode) {
+      await Future.delayed(const Duration(milliseconds: 1500));
+      if (!mounted) return;
+
+      setState(() {
+        _isUiVisible = true;
+      });
+      _fadeController.forward();
+    }
   }
 
-    @override
+  @override
   Widget build(BuildContext context) {
-    // Get the current story node based on the currentIndex
     final currentStory = storyData[currentIndex];
 
-    // If something goes wrong and the index doesn't exist, show an error.
     if (currentStory == null) {
       return Scaffold(
-        backgroundColor: const Color(0xFFFDF5E6), // Old Lace background
+        backgroundColor: const Color(0xFFFDF5E6), 
         body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text(
-                "The story has ended (or we got lost!).",
-                style: TextStyle(fontSize: 20, fontFamily: 'Serif'),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.black87,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 40.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  _currentLang == 'en'
+                      ? "You have reached the end of the story.\n\nThank you for playing!\n\nYou can start the story again and choose different paths."
+                      : "Dosáhli jste konce příběhu.\n\nDěkujeme za hraní!\n\nMůžete příběh začít znovu a zvolit si jiné cesty.",
+                  style: const TextStyle(
+                    fontSize: 22, 
+                    fontFamily: 'StoryFont',
+                    color: Color(0xFF3E2723), // Matching your dark brown text
+                    height: 1.4,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                // This is the magic part: it forces the app back to node 0 and saves it!
-                onPressed: () => _makeChoice(0), 
-                child: const Text("Start from the Beginning"),
-              ),
-            ],
+                const SizedBox(height: 50),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: const Color(0xFF3E2723),
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                    elevation: 3,
+                  ),
+                  onPressed: () async {
+                    // Reset saved progress upon exiting to the main menu
+                    try {
+                      final prefs = await SharedPreferences.getInstance();
+                      await prefs.setInt('storyIndex', 100);
+                    } catch (e) {
+                      debugPrint('Error resetting story progress: $e');
+                    }
+
+                    if (!mounted) return;
+
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => const MainMenuScreen()),
+                    );
+                  },
+                  child: Text(
+                    _currentLang == 'en' ? "Return to Main Menu" : "Zpět do hlavního menu",
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
     }
+    
+    // activeTextData only holds the text and choices for the current language!
+    final activeTextData = currentStory[_currentLang] ?? currentStory;
 
     return Scaffold(
       body: Stack(
         children: [
-          // 1. The Dynamic Background Image with a smooth fade
           Positioned.fill(
-            child: AnimatedSwitcher(
-              duration: const Duration(seconds: 1), // 1-second fade transition
-              child: Image.asset(
-                currentStory["image"], // Pulls the image from your storyData!
-                key: ValueKey<String>(currentStory["image"]), // Crucial for the animation to work
-                fit: BoxFit.cover,
-                width: double.infinity,
-                height: double.infinity,
+            child: GestureDetector(
+              onTap: () {
+                if (!_isUiVisible) {
+                  _toggleUi();
+                }
+              },
+              child: AnimatedSwitcher(
+                duration: const Duration(seconds: 1), 
+                // Using currentStory for Universal Data (Image)
+                child: Image.asset(
+                  currentStory["image"], 
+                  key: ValueKey<String>(currentStory["image"]), 
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: double.infinity,
+                ),
               ),
             ),
           ),
           
-          // 2. The Control Buttons (Top Right)
           Positioned(
             top: 40,
             right: 20,
-            child: Column( // A Column stacks the buttons vertically
+            child: Column( 
               children: [
-                // 1. Mute Button
                 Container(
                   decoration: const BoxDecoration(
                     color: Colors.black45,
@@ -405,7 +613,6 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
                 ),
                 const SizedBox(height: 10), 
                 
-                // 2. Hide Text Button
                 Container(
                   decoration: const BoxDecoration(
                     color: Colors.black45,
@@ -419,19 +626,16 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
                     onPressed: _toggleUi,
                   ),
                 ),
-                const SizedBox(height: 10), // A little gap for the new button
+                const SizedBox(height: 10), 
                 
-                // 3. Exit Game Button
                 Container(
                   decoration: const BoxDecoration(
                     color: Colors.black45,
                     shape: BoxShape.circle,
                   ),
                   child: IconButton(
-                    // An icon that looks like leaving a door
                     icon: const Icon(Icons.exit_to_app, color: Colors.white), 
                     onPressed: () {
-                      // This tells the Android system to gracefully close the app
                       SystemNavigator.pop(); 
                     },
                   ),
@@ -440,30 +644,27 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
             ),
           ),
           
-          // 3. The Semi-Transparent Text Area at the bottom
           FadeTransition(
             opacity: _fadeAnimation,
             child: IgnorePointer(
-              // Prevents clicking the invisible story buttons when UI is hidden
               ignoring: !_isUiVisible, 
               child: Align(
                 alignment: Alignment.bottomCenter,
                 child: Container(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.75,
+                  ),
                   width: double.infinity,
-                  // Increased padding gives the text plenty of room to breathe
                   padding: const EdgeInsets.fromLTRB(32.0, 40.0, 32.0, 40.0),
                   decoration: BoxDecoration(
-                    // Slightly more opaque Old Lace so the text is always readable
                     color: const Color(0xEEFDF5E6), 
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(24),
                       topRight: Radius.circular(24),
                     ),
-                    // Adds a very subtle brown line at the top of the paper
                     border: Border(
                       top: BorderSide(color: Colors.brown.withOpacity(0.2), width: 1.5),
                     ),
-                    // Casts a soft shadow upwards to separate the paper from the background
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.3),
@@ -475,43 +676,63 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // --- THE UPGRADED STORY TEXT ---
-                      Text(
-                        currentStory["text"],
-                        style: const TextStyle(
-                          fontSize: 16, // Slightly larger for readability
-                          height: 1.6, // Book-style line spacing
-                          letterSpacing: 0.3, // Subtle breathing room between letters
-                          color: Color(0xFF3E2723), // Deep dark brown instead of harsh pure black
+                      Flexible(
+                        child: ShaderMask(
+                          shaderCallback: (Rect bounds) {
+                            return const LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.black, 
+                                Colors.black, 
+                                Colors.transparent, 
+                              ],
+                              stops: [0.0, 0.8, 1.0], 
+                            ).createShader(bounds);
+                          },
+                          blendMode: BlendMode.dstIn, 
+                          child: SingleChildScrollView(
+                            controller: _textScrollController,
+                            physics: const BouncingScrollPhysics(),
+                            padding: const EdgeInsets.only(bottom: 40.0), 
+                            // Using activeTextData for Localized Data (Text)
+                            child: Text(
+                              activeTextData["text"],
+                              style: const TextStyle(
+                                fontFamily: 'StoryFont', 
+                                fontSize: 16, 
+                                height: 1.6, 
+                                letterSpacing: 0.3, 
+                                color: Color(0xFF3E2723), 
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
                         ),
-                        textAlign: TextAlign.center,
                       ),
+                      
                       const SizedBox(height: 35),
                       
-                      // --- THE BUTTONS (Stacked vertically for long text) ---
                       Column(
-                        // This makes the buttons stretch across the whole text box!
                         crossAxisAlignment: CrossAxisAlignment.stretch, 
                         children: [
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white,
                               foregroundColor: const Color(0xFF3E2723),
-                              // Added a bit more vertical padding so multi-line text fits nicely
                               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                               elevation: 2,
                             ),
                             onPressed: () => _makeChoice(currentStory["nextIndex1"]),
                             child: Text(
-                              currentStory["choice1"],
+                              activeTextData["choice1"],
                               style: const TextStyle(fontSize: 16, height: 1.4, letterSpacing: 0.5),
-                              textAlign: TextAlign.center, // Centers the text inside the wide button
+                              textAlign: TextAlign.center, 
                             ),
                           ),
                           
-                          // If there is a second choice, draw a spacer and the second button
-                          if (currentStory.containsKey("choice2")) ...[
-                            const SizedBox(height: 16), // The gap between the two stacked buttons
+                          if (activeTextData.containsKey("choice2")) ...[
+                            const SizedBox(height: 16), 
                             
                             ElevatedButton(
                               style: ElevatedButton.styleFrom(
@@ -522,7 +743,7 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
                               ),
                               onPressed: () => _makeChoice(currentStory["nextIndex2"]),
                               child: Text(
-                                currentStory["choice2"],
+                                activeTextData["choice2"],
                                 style: const TextStyle(fontSize: 16, height: 1.4, letterSpacing: 0.5),
                                 textAlign: TextAlign.center,
                               ),

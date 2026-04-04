@@ -22,16 +22,20 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     _fadeController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      duration: kFadeDuration,
     );
 
-    _fadeAnimation = CurvedAnimation(
-      parent: _fadeController,
-      curve: Curves.easeIn,
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 0.25).animate(
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
     );
 
-    _fadeController.forward();
+    // Hold full color for 2s, then fade to gray in the last 1s
+    Future.delayed(const Duration(seconds: 2), () {
+      if (!mounted) return;
+      _fadeController.forward();
+    });
 
+    // Navigate after the fade completes
     Future.delayed(const Duration(seconds: 3), () {
       if (!mounted) return;
       Navigator.pushReplacement(
@@ -58,18 +62,25 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: FadeTransition(
-        opacity: _fadeAnimation,
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: Image.asset(
-                'assets/images/placeholder.jpg',
-                fit: BoxFit.cover,
-              ),
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/elara_menu.jpg',
+              fit: BoxFit.cover,
             ),
-          ],
-        ),
+          ),
+          Positioned.fill(
+            child: AnimatedBuilder(
+              animation: _fadeAnimation,
+              builder: (context, child) {
+                return Container(
+                  color: Colors.white.withValues(alpha: _fadeAnimation.value),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

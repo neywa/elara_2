@@ -172,7 +172,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
                 }
               },
               child: Image.asset(
-                'assets/images/title.jpg',
+                'assets/images/elara_menu.jpg',
                 fit: BoxFit.cover,
                 semanticLabel: 'Title screen background showing the Golden Valley',
               ),
@@ -180,7 +180,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
           ),
 
           Positioned.fill(
-            child: Container(color: Colors.black.withValues(alpha: 0.3)),
+            child: Container(color: Colors.white.withValues(alpha: 0.25)),
           ),
 
           Positioned(

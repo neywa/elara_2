@@ -14,18 +14,38 @@ class MainMenuScreen extends StatefulWidget {
   State<MainMenuScreen> createState() => _MainMenuScreenState();
 }
 
-class _MainMenuScreenState extends State<MainMenuScreen> {
+class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProviderStateMixin {
   bool _hasSavedGame = false;
   String _currentLang = 'en';
   bool _isSettingsMenuOpen = false;
+  bool _isAudioPanelOpen = false;
+  late AnimationController _audioPanelController;
+  late Animation<double> _audioPanelAnimation;
 
   AudioService get _audio => widget.audioService;
 
   @override
   void initState() {
     super.initState();
+
+    _audioPanelController = AnimationController(
+      vsync: this,
+      duration: kFadeDuration,
+    );
+
+    _audioPanelAnimation = CurvedAnimation(
+      parent: _audioPanelController,
+      curve: Curves.easeInOut,
+    );
+
     _checkSavedProgress();
     _audio.changeMusic(kMenuMusicTrack);
+  }
+
+  @override
+  void dispose() {
+    _audioPanelController.dispose();
+    super.dispose();
   }
 
   void _toggleLanguage() async {
@@ -43,6 +63,29 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   void _toggleMusic() {
     _audio.toggleMusic();
     setState(() {});
+  }
+
+  void _toggleSfx() async {
+    setState(() {
+      _audio.isSfxEnabled = !_audio.isSfxEnabled;
+    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(kSfxEnabledKey, _audio.isSfxEnabled);
+    } catch (e) {
+      debugPrint('Error saving SFX preference: $e');
+    }
+  }
+
+  void _toggleAudioPanel() {
+    if (_isAudioPanelOpen) {
+      _audioPanelController.reverse().then((_) {
+        if (mounted) setState(() => _isAudioPanelOpen = false);
+      });
+    } else {
+      setState(() => _isAudioPanelOpen = true);
+      _audioPanelController.forward();
+    }
   }
 
   Future<void> _checkSavedProgress() async {
@@ -76,18 +119,6 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     }
   }
 
-  void _toggleSfx() async {
-    setState(() {
-      _audio.isSfxEnabled = !_audio.isSfxEnabled;
-    });
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(kSfxEnabledKey, _audio.isSfxEnabled);
-    } catch (e) {
-      debugPrint('Error saving SFX preference: $e');
-    }
-  }
-
   Future<void> _startGame({required bool isNewGame}) async {
     try {
       if (isNewGame) {
@@ -113,10 +144,19 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
       body: Stack(
         children: [
           Positioned.fill(
-            child: Image.asset(
-              'assets/images/title.jpg',
-              fit: BoxFit.cover,
-              semanticLabel: 'Title screen background showing the Golden Valley',
+            child: GestureDetector(
+              onTap: () {
+                if (_isAudioPanelOpen) {
+                  _audioPanelController.reverse().then((_) {
+                    if (mounted) setState(() => _isAudioPanelOpen = false);
+                  });
+                }
+              },
+              child: Image.asset(
+                'assets/images/title.jpg',
+                fit: BoxFit.cover,
+                semanticLabel: 'Title screen background showing the Golden Valley',
+              ),
             ),
           ),
 
@@ -127,19 +167,57 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
           Positioned(
             top: 40,
             right: 20,
-            child: Container(
-              decoration: const BoxDecoration(
-                color: Colors.black45,
-                shape: BoxShape.circle,
-              ),
-              child: IconButton(
-                tooltip: _audio.isMusicPlaying ? 'Mute music' : 'Unmute music',
-                icon: Icon(
-                  _audio.isMusicPlaying ? Icons.volume_up : Icons.volume_off,
-                  color: Colors.white,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_isAudioPanelOpen)
+                  FadeTransition(
+                    opacity: _audioPanelAnimation,
+                    child: Container(
+                      height: 48,
+                      margin: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _panelToggle(
+                            icon: Icons.music_note,
+                            tooltip: 'Toggle music',
+                            isEnabled: _audio.isMusicPlaying,
+                            onPressed: _toggleMusic,
+                          ),
+                          const SizedBox(width: 2),
+                          _panelToggle(
+                            icon: Icons.spatial_audio_off,
+                            tooltip: 'Toggle sound effects',
+                            isEnabled: _audio.isSfxEnabled,
+                            onPressed: _toggleSfx,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.black45,
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    tooltip: 'Audio settings',
+                    icon: Icon(
+                      (_audio.isMusicPlaying || _audio.isSfxEnabled)
+                          ? Icons.volume_up
+                          : Icons.volume_off,
+                      color: Colors.white,
+                    ),
+                    onPressed: _toggleAudioPanel,
+                  ),
                 ),
-                onPressed: _toggleMusic,
-              ),
+              ],
             ),
           ),
 
@@ -195,13 +273,6 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                   const SizedBox(height: 20),
                   _menuButton(
                     label: _currentLang == 'en'
-                        ? (_audio.isSfxEnabled ? "Sound Effects: On" : "Sound Effects: Off")
-                        : (_audio.isSfxEnabled ? "Zvukové efekty: Zap" : "Zvukové efekty: Vyp"),
-                    onPressed: _toggleSfx,
-                  ),
-                  const SizedBox(height: 20),
-                  _menuButton(
-                    label: _currentLang == 'en'
                         ? (_audio.artFocusMode ? "Mode: Art Focus" : "Mode: Story Focus")
                         : (_audio.artFocusMode ? "Režim: Obraz" : "Režim: Příběh"),
                     onPressed: _toggleArtMode,
@@ -229,6 +300,25 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
       ),
       onPressed: onPressed,
       child: Text(label, style: const TextStyle(fontSize: 20)),
+    );
+  }
+
+  Widget _panelToggle({
+    required IconData icon,
+    required bool isEnabled,
+    required String tooltip,
+    required VoidCallback onPressed,
+  }) {
+    return IconButton(
+      tooltip: tooltip,
+      constraints: const BoxConstraints(),
+      padding: EdgeInsets.zero,
+      iconSize: 24,
+      icon: Icon(
+        icon,
+        color: isEnabled ? Colors.white : Colors.white38,
+      ),
+      onPressed: onPressed,
     );
   }
 }

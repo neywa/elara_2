@@ -5,6 +5,7 @@ class AudioService {
   final AudioPlayer musicPlayer = AudioPlayer();
   bool isMusicPlaying = true;
   bool isSfxEnabled = true;
+  bool isPageSfxEnabled = true;
   String _currentTrack = '';
   bool artFocusMode = false;
 

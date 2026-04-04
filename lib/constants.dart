@@ -6,6 +6,7 @@ const String kLanguageKey = 'language';
 const String kArtFocusModeKey = 'artFocusMode';
 const String kSfxEnabledKey = 'sfxEnabled';
 const String kMusicEnabledKey = 'musicEnabled';
+const String kPageSfxEnabledKey = 'pageSfxEnabled';
 
 // Story
 const int kStartingNodeIndex = 100;

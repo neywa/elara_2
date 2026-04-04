@@ -109,6 +109,18 @@ class _StoryScreenState extends State<StoryScreen> with TickerProviderStateMixin
     }
   }
 
+  void _togglePageSfx() async {
+    setState(() {
+      _audio.isPageSfxEnabled = !_audio.isPageSfxEnabled;
+    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(kPageSfxEnabledKey, _audio.isPageSfxEnabled);
+    } catch (e) {
+      debugPrint('Error saving page SFX preference: $e');
+    }
+  }
+
   void _toggleAudioPanel() {
     if (_isAudioPanelOpen) {
       _audioPanelController.reverse().then((_) {
@@ -205,6 +217,11 @@ class _StoryScreenState extends State<StoryScreen> with TickerProviderStateMixin
   }
 
   void _makeChoice(int nextIndex) async {
+    if (_audio.isPageSfxEnabled) {
+      final pageSfx = AudioPlayer();
+      pageSfx.play(AssetSource('audio/turn_page.mp3'));
+      pageSfx.onPlayerComplete.listen((_) => pageSfx.dispose());
+    }
     _sfxPlayer.stop();
     _fadeController.value = 0.0;
     setState(() {
@@ -240,13 +257,6 @@ class _StoryScreenState extends State<StoryScreen> with TickerProviderStateMixin
   }
 
   Future<void> _returnToMenu() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(kStoryIndexKey, kStartingNodeIndex);
-    } catch (e) {
-      debugPrint('Error resetting story progress: $e');
-    }
-
     if (!mounted) return;
 
     Navigator.pushReplacement(
@@ -316,8 +326,9 @@ class _StoryScreenState extends State<StoryScreen> with TickerProviderStateMixin
                           margin: const EdgeInsets.only(right: 8),
                           padding: const EdgeInsets.symmetric(horizontal: 10),
                           decoration: BoxDecoration(
-                            color: Colors.black54,
+                            color: Colors.white.withValues(alpha: 0.9),
                             borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: kDarkBrown, width: 1),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -334,6 +345,13 @@ class _StoryScreenState extends State<StoryScreen> with TickerProviderStateMixin
                                 tooltip: 'Toggle sound effects',
                                 isEnabled: _audio.isSfxEnabled,
                                 onPressed: _toggleSfx,
+                              ),
+                              const SizedBox(width: 2),
+                              _panelToggle(
+                                icon: Icons.auto_stories,
+                                tooltip: 'Toggle page turn sound',
+                                isEnabled: _audio.isPageSfxEnabled,
+                                onPressed: _togglePageSfx,
                               ),
                             ],
                           ),
@@ -529,7 +547,7 @@ class _StoryScreenState extends State<StoryScreen> with TickerProviderStateMixin
       iconSize: 24,
       icon: Icon(
         icon,
-        color: isEnabled ? Colors.white : Colors.white38,
+        color: isEnabled ? kDarkBrown : kDarkBrown.withValues(alpha: 0.3),
       ),
       onPressed: onPressed,
     );
@@ -541,13 +559,14 @@ class _StoryScreenState extends State<StoryScreen> with TickerProviderStateMixin
     required VoidCallback onPressed,
   }) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.black45,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.9),
         shape: BoxShape.circle,
+        border: Border.all(color: kDarkBrown, width: 1),
       ),
       child: IconButton(
         tooltip: tooltip,
-        icon: Icon(icon, color: Colors.white),
+        icon: Icon(icon, color: kDarkBrown),
         onPressed: onPressed,
       ),
     );

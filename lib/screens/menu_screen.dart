@@ -100,6 +100,18 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
     }
   }
 
+  void _togglePageSfx() async {
+    setState(() {
+      _audio.isPageSfxEnabled = !_audio.isPageSfxEnabled;
+    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(kPageSfxEnabledKey, _audio.isPageSfxEnabled);
+    } catch (e) {
+      debugPrint('Error saving page SFX preference: $e');
+    }
+  }
+
   void _toggleAudioPanel() {
     if (_isAudioPanelOpen) {
       _audioPanelController.reverse().then((_) {
@@ -121,6 +133,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
         _currentLang = prefs.getString(kLanguageKey) ?? 'en';
         _audio.artFocusMode = prefs.getBool(kArtFocusModeKey) ?? false;
         _audio.isSfxEnabled = prefs.getBool(kSfxEnabledKey) ?? true;
+        _audio.isPageSfxEnabled = prefs.getBool(kPageSfxEnabledKey) ?? true;
         _audio.isMusicPlaying = prefs.getBool(kMusicEnabledKey) ?? true;
         if (savedIndex > kStartingNodeIndex) {
           _hasSavedGame = true;
@@ -129,6 +142,73 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
     } catch (e) {
       debugPrint('Error loading saved progress: $e');
     }
+  }
+
+  void _showAboutDialog() {
+    _playMenuSfx();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFFFDF5E6),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Aura of Gold',
+          style: TextStyle(color: kDarkBrown, fontWeight: FontWeight.bold),
+          textAlign: TextAlign.center,
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'v0.1.5',
+              style: TextStyle(color: kDarkBrown, fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              ui('aboutDescription', _currentLang),
+              style: TextStyle(color: kDarkBrown, fontSize: 15, height: 1.5),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            Text(
+              '${ui('aboutFeedback', _currentLang)}:',
+              style: TextStyle(color: kDarkBrown, fontSize: 14, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'neywa.blake@gmail.com',
+              style: TextStyle(color: kDarkBrown, fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        actions: [
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white.withValues(alpha: 0.9),
+                  foregroundColor: kDarkBrown,
+                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                  side: const BorderSide(color: kDarkBrown, width: 1),
+                ),
+                onPressed: () {
+                  _playMenuSfx();
+                  Navigator.pop(context);
+                },
+                child: Text(
+                  ui('back', _currentLang),
+                  style: const TextStyle(fontSize: 20),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _toggleArtMode() async {
@@ -144,6 +224,13 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
   }
 
   Future<void> _startGame({required bool isNewGame}) async {
+    // Play SFX on a separate player so it survives the screen transition
+    if (_audio.isSfxEnabled) {
+      final sfx = AudioPlayer();
+      sfx.play(AssetSource('audio/menu.mp3'));
+      sfx.onPlayerComplete.listen((_) => sfx.dispose());
+    }
+
     try {
       if (isNewGame) {
         final prefs = await SharedPreferences.getInstance();
@@ -202,8 +289,9 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
                       margin: const EdgeInsets.only(right: 8),
                       padding: const EdgeInsets.symmetric(horizontal: 10),
                       decoration: BoxDecoration(
-                        color: Colors.black54,
+                        color: Colors.white.withValues(alpha: 0.9),
                         borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: kDarkBrown, width: 1),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -221,14 +309,22 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
                             isEnabled: _audio.isSfxEnabled,
                             onPressed: _toggleSfx,
                           ),
+                          const SizedBox(width: 2),
+                          _panelToggle(
+                            icon: Icons.auto_stories,
+                            tooltip: 'Toggle page turn sound',
+                            isEnabled: _audio.isPageSfxEnabled,
+                            onPressed: _togglePageSfx,
+                          ),
                         ],
                       ),
                     ),
                   ),
                 Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.black45,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.9),
                     shape: BoxShape.circle,
+                    border: Border.all(color: kDarkBrown, width: 1),
                   ),
                   child: IconButton(
                     tooltip: 'Audio settings',
@@ -236,7 +332,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
                       (_audio.isMusicPlaying || _audio.isSfxEnabled)
                           ? Icons.volume_up
                           : Icons.volume_off,
-                      color: Colors.white,
+                      color: kDarkBrown,
                     ),
                     onPressed: _toggleAudioPanel,
                   ),
@@ -269,6 +365,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                SizedBox(height: MediaQuery.of(context).size.height * 0.08),
                 IntrinsicWidth(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -278,12 +375,14 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
                           _menuButton(
                             label: ui('continue', _currentLang),
                             onPressed: () => _startGame(isNewGame: false),
+                            playSfx: false,
                           ),
                           const SizedBox(height: 20),
                         ],
                         _menuButton(
                           label: ui('newGame', _currentLang),
                           onPressed: () => _startGame(isNewGame: true),
+                          playSfx: false,
                         ),
                         const SizedBox(height: 20),
                         _menuButton(
@@ -309,6 +408,11 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
                         ),
                         const SizedBox(height: 20),
                         _menuButton(
+                          label: ui('about', _currentLang),
+                          onPressed: _showAboutDialog,
+                        ),
+                        const SizedBox(height: 20),
+                        _menuButton(
                           label: ui('back', _currentLang),
                           onPressed: () => setState(() => _isSettingsMenuOpen = false),
                         ),
@@ -324,7 +428,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
     );
   }
 
-  Widget _menuButton({required String label, required VoidCallback onPressed}) {
+  Widget _menuButton({required String label, required VoidCallback onPressed, bool playSfx = true}) {
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.white.withValues(alpha: 0.9),
@@ -333,7 +437,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
         side: const BorderSide(color: kDarkBrown, width: 1),
       ),
       onPressed: () {
-        _playMenuSfx();
+        if (playSfx) _playMenuSfx();
         onPressed();
       },
       child: Text(label, style: const TextStyle(fontSize: 20)),
@@ -353,7 +457,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
       iconSize: 24,
       icon: Icon(
         icon,
-        color: isEnabled ? Colors.white : Colors.white38,
+        color: isEnabled ? kDarkBrown : kDarkBrown.withValues(alpha: 0.3),
       ),
       onPressed: onPressed,
     );

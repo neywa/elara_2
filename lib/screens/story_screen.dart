@@ -25,6 +25,7 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
   String _currentLang = 'en';
   final ScrollController _textScrollController = ScrollController();
   final AudioPlayer _sfxPlayer = AudioPlayer();
+  bool _canScrollDown = false;
 
   AudioService get _audio => widget.audioService;
 
@@ -59,7 +60,17 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
       curve: Curves.easeInOut,
     );
 
+    _textScrollController.addListener(_updateScrollFade);
     _loadProgress();
+  }
+
+  void _updateScrollFade() {
+    if (!_textScrollController.hasClients) return;
+    final pos = _textScrollController.position;
+    final canScroll = pos.pixels < pos.maxScrollExtent - 1.0;
+    if (canScroll != _canScrollDown) {
+      setState(() => _canScrollDown = canScroll);
+    }
   }
 
   void _toggleMusic() {
@@ -132,6 +143,8 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
     }
 
     _fadeController.value = 0.0;
+    _canScrollDown = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _updateScrollFade());
 
     final node = storyNodes[_currentIndex];
     if (node != null) {
@@ -162,6 +175,8 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
     if (_textScrollController.hasClients) {
       _textScrollController.jumpTo(0.0);
     }
+    _canScrollDown = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _updateScrollFade());
 
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -284,11 +299,15 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
                       Flexible(
                         child: ShaderMask(
                           shaderCallback: (Rect bounds) {
-                            return const LinearGradient(
+                            return LinearGradient(
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
-                              colors: [Colors.black, Colors.black, Colors.transparent],
-                              stops: [0.0, 0.8, 1.0],
+                              colors: _canScrollDown
+                                  ? const [Colors.black, Colors.black, Colors.transparent]
+                                  : const [Colors.black, Colors.black],
+                              stops: _canScrollDown
+                                  ? const [0.0, 0.8, 1.0]
+                                  : const [0.0, 1.0],
                             ).createShader(bounds);
                           },
                           blendMode: BlendMode.dstIn,

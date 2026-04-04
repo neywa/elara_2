@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../constants.dart';
@@ -343,9 +342,9 @@ class _StoryScreenState extends State<StoryScreen> with TickerProviderStateMixin
                 ),
                 const SizedBox(height: 10),
                 _circleIconButton(
-                  icon: Icons.exit_to_app,
-                  tooltip: 'Exit app',
-                  onPressed: () => SystemNavigator.pop(),
+                  icon: Icons.home,
+                  tooltip: 'Return to menu',
+                  onPressed: _returnToMenu,
                 ),
               ],
             ),

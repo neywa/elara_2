@@ -267,14 +267,14 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
                   ),
                 ] else ...[
                   _menuButton(
-                    label: _currentLang == 'en' ? "Language: English" : "Jazyk: Čeština",
+                    label: _currentLang == 'en' ? "English" : "Čeština",
                     onPressed: _toggleLanguage,
                   ),
                   const SizedBox(height: 20),
                   _menuButton(
                     label: _currentLang == 'en'
-                        ? (_audio.artFocusMode ? "Mode: Art Focus" : "Mode: Story Focus")
-                        : (_audio.artFocusMode ? "Režim: Obraz" : "Režim: Příběh"),
+                        ? (_audio.artFocusMode ? "Art Focus" : "Story Focus")
+                        : (_audio.artFocusMode ? "Obraz" : "Příběh"),
                     onPressed: _toggleArtMode,
                   ),
                   const SizedBox(height: 20),

@@ -54,6 +54,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
       setState(() {
         _currentLang = prefs.getString(kLanguageKey) ?? 'en';
         _audio.artFocusMode = prefs.getBool(kArtFocusModeKey) ?? false;
+        _audio.isSfxEnabled = prefs.getBool(kSfxEnabledKey) ?? true;
         if (savedIndex > kStartingNodeIndex) {
           _hasSavedGame = true;
         }
@@ -72,6 +73,18 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
       await prefs.setBool(kArtFocusModeKey, _audio.artFocusMode);
     } catch (e) {
       debugPrint('Error saving art mode preference: $e');
+    }
+  }
+
+  void _toggleSfx() async {
+    setState(() {
+      _audio.isSfxEnabled = !_audio.isSfxEnabled;
+    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(kSfxEnabledKey, _audio.isSfxEnabled);
+    } catch (e) {
+      debugPrint('Error saving SFX preference: $e');
     }
   }
 
@@ -178,6 +191,13 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                   _menuButton(
                     label: _currentLang == 'en' ? "Language: English" : "Jazyk: Čeština",
                     onPressed: _toggleLanguage,
+                  ),
+                  const SizedBox(height: 20),
+                  _menuButton(
+                    label: _currentLang == 'en'
+                        ? (_audio.isSfxEnabled ? "Sound Effects: On" : "Sound Effects: Off")
+                        : (_audio.isSfxEnabled ? "Zvukové efekty: Zap" : "Zvukové efekty: Vyp"),
+                    onPressed: _toggleSfx,
                   ),
                   const SizedBox(height: 20),
                   _menuButton(

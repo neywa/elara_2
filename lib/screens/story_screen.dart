@@ -26,6 +26,7 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
   final ScrollController _textScrollController = ScrollController();
   final AudioPlayer _sfxPlayer = AudioPlayer();
   bool _canScrollDown = false;
+  bool _isAudioPanelOpen = false;
 
   AudioService get _audio => widget.audioService;
 
@@ -78,6 +79,24 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
     setState(() {});
   }
 
+  void _toggleSfx() async {
+    setState(() {
+      _audio.isSfxEnabled = !_audio.isSfxEnabled;
+    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(kSfxEnabledKey, _audio.isSfxEnabled);
+    } catch (e) {
+      debugPrint('Error saving SFX preference: $e');
+    }
+  }
+
+  void _toggleAudioPanel() {
+    setState(() {
+      _isAudioPanelOpen = !_isAudioPanelOpen;
+    });
+  }
+
   void _toggleUi() {
     setState(() {
       _isUiVisible = !_isUiVisible;
@@ -100,7 +119,7 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
 
   Future<void> _playNodeAudio(StoryNode node) async {
     try {
-      if (node.sfx != null) {
+      if (node.sfx != null && _audio.isSfxEnabled) {
         await _sfxPlayer.play(AssetSource('audio/${node.sfx}'));
       }
       if (node.music != null) {
@@ -242,11 +261,46 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
             top: 40,
             right: 20,
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                _circleIconButton(
-                  icon: _audio.isMusicPlaying ? Icons.volume_up : Icons.volume_off,
-                  tooltip: _audio.isMusicPlaying ? 'Mute music' : 'Unmute music',
-                  onPressed: _toggleMusic,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_isAudioPanelOpen)
+                      Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _panelToggle(
+                              icon: Icons.music_note,
+                              label: 'Music',
+                              isEnabled: _audio.isMusicPlaying,
+                              onPressed: _toggleMusic,
+                            ),
+                            const SizedBox(width: 12),
+                            _panelToggle(
+                              icon: Icons.spatial_audio_off,
+                              label: 'SFX',
+                              isEnabled: _audio.isSfxEnabled,
+                              onPressed: _toggleSfx,
+                            ),
+                          ],
+                        ),
+                      ),
+                    _circleIconButton(
+                      icon: (_audio.isMusicPlaying || _audio.isSfxEnabled)
+                          ? Icons.volume_up
+                          : Icons.volume_off,
+                      tooltip: 'Audio settings',
+                      onPressed: _toggleAudioPanel,
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 10),
                 _circleIconButton(
@@ -416,6 +470,35 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
         label,
         style: const TextStyle(fontSize: 16, height: 1.4, letterSpacing: 0.5),
         textAlign: TextAlign.center,
+      ),
+    );
+  }
+
+  Widget _panelToggle({
+    required IconData icon,
+    required String label,
+    required bool isEnabled,
+    required VoidCallback onPressed,
+  }) {
+    return GestureDetector(
+      onTap: onPressed,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            color: isEnabled ? Colors.white : Colors.white38,
+            size: 20,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: isEnabled ? Colors.white : Colors.white38,
+              fontSize: 13,
+            ),
+          ),
+        ],
       ),
     );
   }

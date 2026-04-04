@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 const String kStoryIndexKey = 'storyIndex';
 const String kLanguageKey = 'language';
 const String kArtFocusModeKey = 'artFocusMode';
+const String kSfxEnabledKey = 'sfxEnabled';
 
 // Story
 const int kStartingNodeIndex = 100;

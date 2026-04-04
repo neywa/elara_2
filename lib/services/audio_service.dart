@@ -4,6 +4,7 @@ import 'package:audioplayers/audioplayers.dart';
 class AudioService {
   final AudioPlayer musicPlayer = AudioPlayer();
   bool isMusicPlaying = true;
+  bool isSfxEnabled = true;
   String _currentTrack = '';
   bool artFocusMode = false;
 

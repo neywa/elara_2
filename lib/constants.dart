@@ -13,8 +13,6 @@ const String kMenuMusicTrack = 'bg_music_day_1.mp3';
 const Duration kFadeDuration = Duration(seconds: 1);
 const Duration kUiRevealDelay = Duration(milliseconds: 1500);
 const Duration kTransitionDelay = Duration(seconds: 1);
-const Duration kMusicCrossfadeDuration = Duration(milliseconds: 500);
-
 // Layout
 const double kStoryPanelMaxHeightRatio = 0.75;
 

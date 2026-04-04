@@ -39,9 +39,11 @@ class StoryNode {
 
   factory StoryNode.fromMap(Map<String, dynamic> map) {
     final localized = <String, StoryContent>{};
-    for (final lang in ['en', 'cs']) {
-      if (map.containsKey(lang)) {
-        localized[lang] = StoryContent.fromMap(map[lang] as Map<String, dynamic>);
+    // Dynamically pick up any language key (non-system keys are language codes)
+    const systemKeys = {'image', 'music', 'sfx', 'nextIndex1', 'nextIndex2'};
+    for (final key in map.keys) {
+      if (!systemKeys.contains(key) && map[key] is Map<String, dynamic>) {
+        localized[key] = StoryContent.fromMap(map[key] as Map<String, dynamic>);
       }
     }
 

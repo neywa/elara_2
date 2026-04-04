@@ -5,6 +5,7 @@ import '../constants.dart';
 import '../models/story_node.dart';
 import '../services/audio_service.dart';
 import '../story_data.dart';
+import '../ui_strings.dart';
 import 'menu_screen.dart';
 
 class StoryScreen extends StatefulWidget {
@@ -449,9 +450,7 @@ class _StoryScreenState extends State<StoryScreen> with TickerProviderStateMixin
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                _currentLang == 'en'
-                    ? "You have reached the end of the story.\n\nThank you for playing!\n\nYou can start the story again and choose different paths."
-                    : "Dosáhli jste konce příběhu.\n\nDěkujeme za hraní!\n\nMůžete příběh začít znovu a zvolit si jiné cesty.",
+                ui('endOfStory', _currentLang),
                 style: const TextStyle(
                   fontSize: 22,
                   fontFamily: 'StoryFont',
@@ -470,7 +469,7 @@ class _StoryScreenState extends State<StoryScreen> with TickerProviderStateMixin
                 ),
                 onPressed: _returnToMenu,
                 child: Text(
-                  _currentLang == 'en' ? "Return to Main Menu" : "Zpět do hlavního menu",
+                  ui('returnToMenu', _currentLang),
                   style: const TextStyle(fontSize: 18),
                 ),
               ),

@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../constants.dart';
 import '../services/audio_service.dart';
+import '../ui_strings.dart';
 import 'story_screen.dart';
 
 class MainMenuScreen extends StatefulWidget {
@@ -66,7 +67,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
 
   void _toggleLanguage() async {
     setState(() {
-      _currentLang = (_currentLang == 'en') ? 'cs' : 'en';
+      _currentLang = nextLanguage(_currentLang);
     });
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -269,40 +270,40 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
                 if (!_isSettingsMenuOpen) ...[
                   if (_hasSavedGame) ...[
                     _menuButton(
-                      label: _currentLang == 'en' ? "Continue" : "Pokračovat",
+                      label: ui('continue', _currentLang),
                       onPressed: () => _startGame(isNewGame: false),
                     ),
                     const SizedBox(height: 20),
                   ],
                   _menuButton(
-                    label: _currentLang == 'en' ? "New Game" : "Nová hra",
+                    label: ui('newGame', _currentLang),
                     onPressed: () => _startGame(isNewGame: true),
                   ),
                   const SizedBox(height: 20),
                   _menuButton(
-                    label: _currentLang == 'en' ? "Settings" : "Nastavení",
+                    label: ui('settings', _currentLang),
                     onPressed: () => setState(() => _isSettingsMenuOpen = true),
                   ),
                   const SizedBox(height: 20),
                   _menuButton(
-                    label: _currentLang == 'en' ? "Exit Game" : "Ukončit hru",
+                    label: ui('exitGame', _currentLang),
                     onPressed: () => SystemNavigator.pop(),
                   ),
                 ] else ...[
                   _menuButton(
-                    label: _currentLang == 'en' ? "English" : "Čeština",
+                    label: languageNames[_currentLang] ?? _currentLang,
                     onPressed: _toggleLanguage,
                   ),
                   const SizedBox(height: 20),
                   _menuButton(
-                    label: _currentLang == 'en'
-                        ? (_audio.artFocusMode ? "Art Focus" : "Story Focus")
-                        : (_audio.artFocusMode ? "Obraz" : "Příběh"),
+                    label: _audio.artFocusMode
+                        ? ui('artFocus', _currentLang)
+                        : ui('storyFocus', _currentLang),
                     onPressed: _toggleArtMode,
                   ),
                   const SizedBox(height: 20),
                   _menuButton(
-                    label: _currentLang == 'en' ? "Back" : "Zpět",
+                    label: ui('back', _currentLang),
                     onPressed: () => setState(() => _isSettingsMenuOpen = false),
                   ),
                 ],

@@ -14,6 +14,22 @@ final Map<int, Map<String, dynamic>> _rawStoryData = {
     "cs": {
       "text": "Vítejte v Aura of Gold.",
       "choice1": "Začít příběh",
+    },
+    "de": {
+      "text": "Willkommen bei Aura of Gold.",
+      "choice1": "Geschichte beginnen",
+    },
+    "fr": {
+      "text": "Bienvenue dans Aura of Gold.",
+      "choice1": "Commencer l'histoire",
+    },
+    "it": {
+      "text": "Benvenuti in Aura of Gold.",
+      "choice1": "Inizia la storia",
+    },
+    "es": {
+      "text": "Bienvenido a Aura of Gold.",
+      "choice1": "Comenzar la historia",
     }
   },
   ...chapter1,

@@ -40,7 +40,11 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
       curve: Curves.easeInOut,
     );
 
-    _checkSavedProgress();
+    _initAudio();
+  }
+
+  Future<void> _initAudio() async {
+    await _checkSavedProgress();
     _audio.changeMusic(kMenuMusicTrack);
   }
 

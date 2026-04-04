@@ -28,8 +28,12 @@ class AudioService {
     try {
       if (isMusicPlaying) {
         musicPlayer.pause();
-      } else {
-        musicPlayer.resume();
+      } else if (_currentTrack.isNotEmpty) {
+        // If a track was set but never played, start it; otherwise resume
+        musicPlayer.resume().catchError((_) {
+          musicPlayer.setReleaseMode(ReleaseMode.loop);
+          musicPlayer.play(AssetSource('audio/$_currentTrack'));
+        });
       }
     } catch (e) {
       debugPrint('Error toggling music: $e');

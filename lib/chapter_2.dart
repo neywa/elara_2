@@ -285,7 +285,7 @@
       "choice2": "Stay and ask Sofia about Bella"
     },
     "cs": {
-      "text": "Právě tehdy si k vedlejšímu stolu přisedne žena s bystrýma, zvídavýma očima a košíkem čerstvých bylinek. Okamžitě se zářivě usměje. 'Ty musíš být Bellina neteř,' řekne vřele, její hlas má hudební nádech údolí. 'Jsem Sofia. Bydlela jsem vedle tvé tety třicet nádherných let.'\n\nSofia se nakloní, její přítomnost voní po slunci, rozmarýnu a hlíně. Mluví o Belle ne jako o vzpomínce, ale jako o živoucí síle, která je stále přítomna v domě na kopci. Elara cítí nával vděčnosti za tento most do minulosti své tety.",
+      "text": "Právě tehdy si k vedlejšímu stolu přisedne žena s bystrýma, zvídavýma očima a košíkem čerstvých bylinek. Okamžitě se zářivě usměje. 'Ty musíš být Bellina neteř,' řekne vřele, její hlas má hudební nádech údolí. 'Jsem Sofie. Bydlela jsem vedle tvé tety třicet nádherných let.'\n\nSofie se nakloní, její přítomnost voní po slunci, rozmarýnu a hlíně. Nemluví o Belle jako o vzpomínce, ale jako o živoucí síle, která je stále přítomna v domě na kopci. Elara cítí nával vděčnosti za tento most do minulosti své tety.",
       "choice1": "Jít společně k trhovým stánkům",
       "choice2": "Zůstat a zeptat se Sofie na Bellu"
     },

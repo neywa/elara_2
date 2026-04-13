@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../constants.dart';
@@ -160,7 +161,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'v0.1.5',
+              'v1.0.0',
               style: TextStyle(color: kDarkBrown, fontSize: 14),
               textAlign: TextAlign.center,
             ),
@@ -181,6 +182,20 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
               'neywa.blake@gmail.com',
               style: TextStyle(color: kDarkBrown, fontSize: 14),
               textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            GestureDetector(
+              onTap: () => launchUrl(Uri.parse('https://buymeacoffee.com/neywablake')),
+              child: Text(
+                'Buy me a coffee ☕',
+                style: TextStyle(
+                  fontSize: 15,
+                  color: kDarkBrown,
+                  decoration: TextDecoration.underline,
+                  decorationColor: kDarkBrown,
+                ),
+                textAlign: TextAlign.center,
+              ),
             ),
           ],
         ),

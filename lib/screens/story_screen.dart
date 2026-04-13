@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../constants.dart';
 import '../models/story_node.dart';
@@ -477,7 +478,21 @@ class _StoryScreenState extends State<StoryScreen> with TickerProviderStateMixin
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 50),
+              const SizedBox(height: 40),
+              GestureDetector(
+                onTap: () => launchUrl(Uri.parse('https://buymeacoffee.com/neywablake')),
+                child: const Text(
+                  'Enjoying the app? Buy me a coffee ☕',
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: kDarkBrown,
+                    decoration: TextDecoration.underline,
+                    decorationColor: kDarkBrown,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: 30),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,

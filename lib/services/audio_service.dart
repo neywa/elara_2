@@ -16,9 +16,10 @@ class AudioService {
     try {
       await musicPlayer.stop();
       await musicPlayer.setReleaseMode(ReleaseMode.loop);
+      await musicPlayer.setSourceAsset('audio/$trackName');
 
       if (isMusicPlaying) {
-        await musicPlayer.play(AssetSource('audio/$trackName'));
+        await musicPlayer.resume();
       }
     } catch (e) {
       debugPrint('Error changing music to $trackName: $e');
@@ -30,11 +31,7 @@ class AudioService {
       if (isMusicPlaying) {
         musicPlayer.pause();
       } else if (_currentTrack.isNotEmpty) {
-        // If a track was set but never played, start it; otherwise resume
-        musicPlayer.resume().catchError((_) {
-          musicPlayer.setReleaseMode(ReleaseMode.loop);
-          musicPlayer.play(AssetSource('audio/$_currentTrack'));
-        });
+        musicPlayer.resume();
       }
     } catch (e) {
       debugPrint('Error toggling music: $e');

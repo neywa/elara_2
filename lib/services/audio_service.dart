@@ -8,6 +8,30 @@ class AudioService {
   bool isPageSfxEnabled = true;
   String _currentTrack = '';
   bool artFocusMode = false;
+  bool _contextConfigured = false;
+
+  Future<void> setupAudioContext() async {
+    if (_contextConfigured) return;
+    _contextConfigured = true;
+    try {
+      final ctx = AudioContext(
+        android: const AudioContextAndroid(
+          isSpeakerphoneOn: false,
+          stayAwake: false,
+          contentType: AndroidContentType.music,
+          usageType: AndroidUsageType.game,
+          audioFocus: AndroidAudioFocus.none,
+        ),
+        iOS: AudioContextIOS(
+          category: AVAudioSessionCategory.playback,
+          options: const {AVAudioSessionOptions.mixWithOthers},
+        ),
+      );
+      await AudioPlayer.global.setAudioContext(ctx);
+    } catch (e) {
+      debugPrint('Error setting audio context: $e');
+    }
+  }
 
   Future<void> changeMusic(String trackName) async {
     if (_currentTrack == trackName) return;
@@ -16,10 +40,13 @@ class AudioService {
     try {
       await musicPlayer.stop();
       await musicPlayer.setReleaseMode(ReleaseMode.loop);
-      await musicPlayer.setSourceAsset('audio/$trackName');
 
       if (isMusicPlaying) {
-        await musicPlayer.resume();
+        // play() properly requests audio focus so SFX can't steal it
+        await musicPlayer.play(AssetSource('audio/$trackName'));
+      } else {
+        // Preload source so toggleMusic can start it later via resume()
+        await musicPlayer.setSourceAsset('audio/$trackName');
       }
     } catch (e) {
       debugPrint('Error changing music to $trackName: $e');

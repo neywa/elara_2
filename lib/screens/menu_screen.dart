@@ -47,7 +47,8 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
 
   Future<void> _initAudio() async {
     await _checkSavedProgress();
-    _audio.changeMusic(kMenuMusicTrack);
+    await _audio.changeMusic(kMenuMusicTrack);
+    await _audio.setupAudioContext();
   }
 
   @override

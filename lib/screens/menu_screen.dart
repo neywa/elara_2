@@ -162,7 +162,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'v1.0.0',
+              'v1.0.1',
               style: TextStyle(color: kDarkBrown, fontSize: 14),
               textAlign: TextAlign.center,
             ),

@@ -46,9 +46,10 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
   }
 
   Future<void> _initAudio() async {
+    await _audio.setupAudioContext();
+    await _sfxPlayer.setAudioContext(AudioService.gameAudioContext);
     await _checkSavedProgress();
     await _audio.changeMusic(kMenuMusicTrack);
-    await _audio.setupAudioContext();
   }
 
   @override
@@ -243,6 +244,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
     // Play SFX on a separate player so it survives the screen transition
     if (_audio.isSfxEnabled) {
       final sfx = AudioPlayer();
+      await sfx.setAudioContext(AudioService.gameAudioContext);
       sfx.play(AssetSource('audio/menu.mp3'));
       sfx.onPlayerComplete.listen((_) => sfx.dispose());
     }

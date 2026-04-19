@@ -10,24 +10,26 @@ class AudioService {
   bool artFocusMode = false;
   bool _contextConfigured = false;
 
+  static final AudioContext gameAudioContext = AudioContext(
+    android: const AudioContextAndroid(
+      isSpeakerphoneOn: false,
+      stayAwake: false,
+      contentType: AndroidContentType.music,
+      usageType: AndroidUsageType.game,
+      audioFocus: AndroidAudioFocus.none,
+    ),
+    iOS: AudioContextIOS(
+      category: AVAudioSessionCategory.playback,
+      options: const {AVAudioSessionOptions.mixWithOthers},
+    ),
+  );
+
   Future<void> setupAudioContext() async {
     if (_contextConfigured) return;
     _contextConfigured = true;
     try {
-      final ctx = AudioContext(
-        android: const AudioContextAndroid(
-          isSpeakerphoneOn: false,
-          stayAwake: false,
-          contentType: AndroidContentType.music,
-          usageType: AndroidUsageType.game,
-          audioFocus: AndroidAudioFocus.none,
-        ),
-        iOS: AudioContextIOS(
-          category: AVAudioSessionCategory.playback,
-          options: const {AVAudioSessionOptions.mixWithOthers},
-        ),
-      );
-      await AudioPlayer.global.setAudioContext(ctx);
+      await AudioPlayer.global.setAudioContext(gameAudioContext);
+      await musicPlayer.setAudioContext(gameAudioContext);
     } catch (e) {
       debugPrint('Error setting audio context: $e');
     }

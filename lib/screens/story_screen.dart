@@ -37,22 +37,8 @@ class _StoryScreenState extends State<StoryScreen> with TickerProviderStateMixin
   void initState() {
     super.initState();
 
-    final gameAudioContext = AudioContext(
-      android: const AudioContextAndroid(
-        isSpeakerphoneOn: false,
-        stayAwake: false,
-        contentType: AndroidContentType.music,
-        usageType: AndroidUsageType.game,
-        audioFocus: AndroidAudioFocus.none,
-      ),
-      iOS: AudioContextIOS(
-        category: AVAudioSessionCategory.playback,
-        options: const {AVAudioSessionOptions.mixWithOthers},
-      ),
-    );
-
-    AudioPlayer.global.setAudioContext(gameAudioContext);
-    _sfxPlayer.setAudioContext(gameAudioContext);
+    AudioPlayer.global.setAudioContext(AudioService.gameAudioContext);
+    _sfxPlayer.setAudioContext(AudioService.gameAudioContext);
 
     _fadeController = AnimationController(
       vsync: this,
@@ -220,6 +206,7 @@ class _StoryScreenState extends State<StoryScreen> with TickerProviderStateMixin
   void _makeChoice(int nextIndex) async {
     if (_audio.isPageSfxEnabled) {
       final pageSfx = AudioPlayer();
+      await pageSfx.setAudioContext(AudioService.gameAudioContext);
       pageSfx.play(AssetSource('audio/turn_page.mp3'));
       pageSfx.onPlayerComplete.listen((_) => pageSfx.dispose());
     }

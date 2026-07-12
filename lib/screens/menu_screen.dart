@@ -10,6 +10,8 @@ import '../services/audio_service.dart';
 import '../ui_strings.dart';
 import 'story_screen.dart';
 
+enum _MenuPage { main, settings, language }
+
 class MainMenuScreen extends StatefulWidget {
   final AudioService audioService;
 
@@ -19,10 +21,11 @@ class MainMenuScreen extends StatefulWidget {
   State<MainMenuScreen> createState() => _MainMenuScreenState();
 }
 
-class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProviderStateMixin {
+class _MainMenuScreenState extends State<MainMenuScreen>
+    with SingleTickerProviderStateMixin {
   bool _hasSavedGame = false;
   String _currentLang = 'en';
-  bool _isSettingsMenuOpen = false;
+  _MenuPage _menuPage = _MenuPage.main;
   bool _isAudioPanelOpen = false;
   late AnimationController _audioPanelController;
   late Animation<double> _audioPanelAnimation;
@@ -70,9 +73,11 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
     }
   }
 
-  void _toggleLanguage() async {
+  void _selectLanguage(String langCode) async {
+    _playMenuSfx();
     setState(() {
-      _currentLang = nextLanguage(_currentLang);
+      _currentLang = langCode;
+      _menuPage = _MenuPage.settings;
     });
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -80,6 +85,26 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
     } catch (e) {
       debugPrint('Error saving language preference: $e');
     }
+  }
+
+  Widget _languageOption(({String code, String flag, String name}) option) {
+    final isSelected = option.code == _currentLang;
+    return ElevatedButton(
+      style: _pillStyle(borderWidth: isSelected ? 2.5 : 1),
+      onPressed: () => _selectLanguage(option.code),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(option.flag, style: const TextStyle(fontSize: 20)),
+          const SizedBox(width: 12),
+          Text(option.name, style: const TextStyle(fontSize: 20)),
+          if (isSelected) ...[
+            const SizedBox(width: 8),
+            const Icon(Icons.check, color: kDarkBrown, size: 20),
+          ],
+        ],
+      ),
+    );
   }
 
   void _toggleMusic() async {
@@ -178,7 +203,11 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
             const SizedBox(height: 20),
             Text(
               '${ui('aboutFeedback', _currentLang)}:',
-              style: TextStyle(color: kDarkBrown, fontSize: 14, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: kDarkBrown,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 4),
@@ -189,7 +218,8 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
             ),
             const SizedBox(height: 20),
             GestureDetector(
-              onTap: () => launchUrl(Uri.parse('https://buymeacoffee.com/neywablake')),
+              onTap: () =>
+                  launchUrl(Uri.parse('https://buymeacoffee.com/neywablake')),
               child: Text(
                 'Buy me a coffee ☕',
                 style: TextStyle(
@@ -211,7 +241,10 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white.withValues(alpha: 0.9),
                   foregroundColor: kDarkBrown,
-                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 40,
+                    vertical: 15,
+                  ),
                   side: const BorderSide(color: kDarkBrown, width: 1),
                 ),
                 onPressed: () {
@@ -286,7 +319,8 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
               child: Image.asset(
                 'assets/images/elara_menu.jpg',
                 fit: BoxFit.cover,
-                semanticLabel: 'Title screen background showing the Golden Valley',
+                semanticLabel:
+                    'Title screen background showing the Golden Valley',
               ),
             ),
           ),
@@ -382,67 +416,82 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
           ),
 
           Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SizedBox(height: MediaQuery.of(context).size.height * 0.08),
-                IntrinsicWidth(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (!_isSettingsMenuOpen) ...[
-                        if (_hasSavedGame) ...[
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.08),
+                  IntrinsicWidth(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (_menuPage == _MenuPage.main) ...[
+                          if (_hasSavedGame) ...[
+                            _menuButton(
+                              label: ui('continue', _currentLang),
+                              onPressed: () => _startGame(isNewGame: false),
+                              playSfx: false,
+                            ),
+                            const SizedBox(height: 20),
+                          ],
                           _menuButton(
-                            label: ui('continue', _currentLang),
-                            onPressed: () => _startGame(isNewGame: false),
+                            label: ui('newGame', _currentLang),
+                            onPressed: () => _startGame(isNewGame: true),
                             playSfx: false,
                           ),
                           const SizedBox(height: 20),
-                        ],
-                        _menuButton(
-                          label: ui('newGame', _currentLang),
-                          onPressed: () => _startGame(isNewGame: true),
-                          playSfx: false,
-                        ),
-                        const SizedBox(height: 20),
-                        _menuButton(
-                          label: ui('settings', _currentLang),
-                          onPressed: () => setState(() => _isSettingsMenuOpen = true),
-                        ),
-                        if (!Platform.isIOS) ...[
+                          _menuButton(
+                            label: ui('settings', _currentLang),
+                            onPressed: () =>
+                                setState(() => _menuPage = _MenuPage.settings),
+                          ),
+                          if (!Platform.isIOS) ...[
+                            const SizedBox(height: 20),
+                            _menuButton(
+                              label: ui('exitGame', _currentLang),
+                              onPressed: () => SystemNavigator.pop(),
+                            ),
+                          ],
+                        ] else if (_menuPage == _MenuPage.settings) ...[
+                          _menuButton(
+                            label: ui('language', _currentLang),
+                            onPressed: () =>
+                                setState(() => _menuPage = _MenuPage.language),
+                          ),
                           const SizedBox(height: 20),
                           _menuButton(
-                            label: ui('exitGame', _currentLang),
-                            onPressed: () => SystemNavigator.pop(),
+                            label: _audio.artFocusMode
+                                ? ui('artFocus', _currentLang)
+                                : ui('storyFocus', _currentLang),
+                            onPressed: _toggleArtMode,
+                          ),
+                          const SizedBox(height: 20),
+                          _menuButton(
+                            label: ui('about', _currentLang),
+                            onPressed: _showAboutDialog,
+                          ),
+                          const SizedBox(height: 20),
+                          _menuButton(
+                            label: ui('back', _currentLang),
+                            onPressed: () =>
+                                setState(() => _menuPage = _MenuPage.main),
+                          ),
+                        ] else ...[
+                          for (final option in languageOptions) ...[
+                            _languageOption(option),
+                            const SizedBox(height: 12),
+                          ],
+                          _menuButton(
+                            label: ui('back', _currentLang),
+                            onPressed: () =>
+                                setState(() => _menuPage = _MenuPage.settings),
                           ),
                         ],
-                      ] else ...[
-                        _menuButton(
-                          label: languageNames[_currentLang] ?? _currentLang,
-                          onPressed: _toggleLanguage,
-                        ),
-                        const SizedBox(height: 20),
-                        _menuButton(
-                          label: _audio.artFocusMode
-                              ? ui('artFocus', _currentLang)
-                              : ui('storyFocus', _currentLang),
-                          onPressed: _toggleArtMode,
-                        ),
-                        const SizedBox(height: 20),
-                        _menuButton(
-                          label: ui('about', _currentLang),
-                          onPressed: _showAboutDialog,
-                        ),
-                        const SizedBox(height: 20),
-                        _menuButton(
-                          label: ui('back', _currentLang),
-                          onPressed: () => setState(() => _isSettingsMenuOpen = false),
-                        ),
                       ],
-                    ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
@@ -450,14 +499,22 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
     );
   }
 
-  Widget _menuButton({required String label, required VoidCallback onPressed, bool playSfx = true}) {
+  ButtonStyle _pillStyle({double borderWidth = 1}) {
+    return ElevatedButton.styleFrom(
+      backgroundColor: Colors.white.withValues(alpha: 0.9),
+      foregroundColor: kDarkBrown,
+      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+      side: BorderSide(color: kDarkBrown, width: borderWidth),
+    );
+  }
+
+  Widget _menuButton({
+    required String label,
+    required VoidCallback onPressed,
+    bool playSfx = true,
+  }) {
     return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.white.withValues(alpha: 0.9),
-        foregroundColor: kDarkBrown,
-        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-        side: const BorderSide(color: kDarkBrown, width: 1),
-      ),
+      style: _pillStyle(),
       onPressed: () {
         if (playSfx) _playMenuSfx();
         onPressed();

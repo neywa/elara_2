@@ -1,13 +1,11 @@
-const List<String> supportedLanguages = ['en', 'cs', 'de', 'fr', 'it', 'es'];
-
-const Map<String, String> languageNames = {
-  'en': 'English',
-  'cs': 'Čeština',
-  'de': 'Deutsch',
-  'fr': 'Français',
-  'it': 'Italiano',
-  'es': 'Español',
-};
+const List<({String code, String flag, String name})> languageOptions = [
+  (code: 'en', flag: '🇬🇧', name: 'English'),
+  (code: 'cs', flag: '🇨🇿', name: 'Čeština'),
+  (code: 'de', flag: '🇩🇪', name: 'Deutsch'),
+  (code: 'fr', flag: '🇫🇷', name: 'Français'),
+  (code: 'it', flag: '🇮🇹', name: 'Italiano'),
+  (code: 'es', flag: '🇪🇸', name: 'Español'),
+];
 
 const Map<String, Map<String, String>> uiStrings = {
   'continue': {
@@ -25,6 +23,14 @@ const Map<String, Map<String, String>> uiStrings = {
     'fr': 'Nouvelle partie',
     'it': 'Nuova partita',
     'es': 'Nueva partida',
+  },
+  'language': {
+    'en': 'Language',
+    'cs': 'Jazyk',
+    'de': 'Sprache',
+    'fr': 'Langue',
+    'it': 'Lingua',
+    'es': 'Idioma',
   },
   'settings': {
     'en': 'Settings',
@@ -109,8 +115,3 @@ const Map<String, Map<String, String>> uiStrings = {
 };
 
 String ui(String key, String lang) => uiStrings[key]?[lang] ?? uiStrings[key]?['en'] ?? key;
-
-String nextLanguage(String current) {
-  final index = supportedLanguages.indexOf(current);
-  return supportedLanguages[(index + 1) % supportedLanguages.length];
-}

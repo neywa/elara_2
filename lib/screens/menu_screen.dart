@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -407,11 +409,13 @@ class _MainMenuScreenState extends State<MainMenuScreen> with SingleTickerProvid
                           label: ui('settings', _currentLang),
                           onPressed: () => setState(() => _isSettingsMenuOpen = true),
                         ),
-                        const SizedBox(height: 20),
-                        _menuButton(
-                          label: ui('exitGame', _currentLang),
-                          onPressed: () => SystemNavigator.pop(),
-                        ),
+                        if (!Platform.isIOS) ...[
+                          const SizedBox(height: 20),
+                          _menuButton(
+                            label: ui('exitGame', _currentLang),
+                            onPressed: () => SystemNavigator.pop(),
+                          ),
+                        ],
                       ] else ...[
                         _menuButton(
                           label: languageNames[_currentLang] ?? _currentLang,

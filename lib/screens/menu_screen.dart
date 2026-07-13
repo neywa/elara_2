@@ -2,6 +2,7 @@ import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:in_app_review/in_app_review.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -215,6 +216,19 @@ class _MainMenuScreenState extends State<MainMenuScreen>
       });
     } catch (e) {
       debugPrint('Error loading saved progress: $e');
+    }
+  }
+
+  Future<void> _requestReview() async {
+    try {
+      final inAppReview = InAppReview.instance;
+      if (await inAppReview.isAvailable()) {
+        await inAppReview.requestReview();
+      } else {
+        await inAppReview.openStoreListing(appStoreId: kAppStoreId);
+      }
+    } catch (e) {
+      debugPrint('Error requesting review: $e');
     }
   }
 
@@ -500,6 +514,11 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                           _menuButton(
                             label: ui('about', _currentLang),
                             onPressed: _showAboutDialog,
+                          ),
+                          const SizedBox(height: 20),
+                          _menuButton(
+                            label: ui('rateApp', _currentLang),
+                            onPressed: _requestReview,
                           ),
                           const SizedBox(height: 20),
                           _menuButton(

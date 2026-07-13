@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:in_app_review/in_app_review.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -203,6 +204,25 @@ class _StoryScreenState extends State<StoryScreen> with TickerProviderStateMixin
     await _showUiAfterDelay();
   }
 
+  /// Asks for a store rating once ever, after the player finishes day 1.
+  /// If the native sheet is unavailable we skip silently rather than sending
+  /// the player to the store listing mid-story.
+  Future<void> _maybeRequestRatingAfterDay1() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.getBool(kHasRequestedRatingAfterDay1Key) ?? false) return;
+      // Burn the one-time chance up front, so a failed request can't re-fire.
+      await prefs.setBool(kHasRequestedRatingAfterDay1Key, true);
+
+      final inAppReview = InAppReview.instance;
+      if (!await inAppReview.isAvailable()) return;
+      if (!mounted) return;
+      await inAppReview.requestReview();
+    } catch (e) {
+      debugPrint('Error requesting review after day 1: $e');
+    }
+  }
+
   void _makeChoice(int nextIndex) async {
     if (_audio.isPageSfxEnabled) {
       final pageSfx = AudioPlayer();
@@ -242,6 +262,14 @@ class _StoryScreenState extends State<StoryScreen> with TickerProviderStateMixin
     }
 
     await _showUiAfterDelay();
+
+    // Only fires on the transition into day 2, never on a load of a save
+    // already parked there.
+    if (_currentIndex == kDay2StartNodeIndex) {
+      await Future.delayed(kRatingNudgeDelay);
+      if (!mounted) return;
+      await _maybeRequestRatingAfterDay1();
+    }
   }
 
   Future<void> _returnToMenu() async {

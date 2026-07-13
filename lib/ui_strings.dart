@@ -88,6 +88,14 @@ const Map<String, Map<String, String>> uiStrings = {
     'it': 'Hai raggiunto la fine della storia.\n\nGrazie per aver giocato!\n\nPuoi ricominciare la storia e scegliere percorsi diversi.',
     'es': 'Has llegado al final de la historia.\n\n¡Gracias por jugar!\n\nPuedes empezar la historia de nuevo y elegir caminos diferentes.',
   },
+  'rateApp': {
+    'en': 'Rate Aura of Gold',
+    'cs': 'Ohodnotit Aura of Gold',
+    'de': 'Aura of Gold bewerten',
+    'fr': 'Noter Aura of Gold',
+    'it': 'Valuta Aura of Gold',
+    'es': 'Valorar Aura of Gold',
+  },
   'about': {
     'en': 'About',
     'cs': 'O aplikaci',

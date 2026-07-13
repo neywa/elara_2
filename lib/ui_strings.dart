@@ -32,6 +32,14 @@ const Map<String, Map<String, String>> uiStrings = {
     'it': 'Lingua',
     'es': 'Idioma',
   },
+  'gameMode': {
+    'en': 'Game Mode',
+    'cs': 'Herní režim',
+    'de': 'Spielmodus',
+    'fr': 'Mode de jeu',
+    'it': 'Modalità di gioco',
+    'es': 'Modo de juego',
+  },
   'settings': {
     'en': 'Settings',
     'cs': 'Nastavení',

@@ -10,7 +10,13 @@ import '../services/audio_service.dart';
 import '../ui_strings.dart';
 import 'story_screen.dart';
 
-enum _MenuPage { main, settings, language }
+enum _MenuPage { main, settings, language, gameMode }
+
+const List<({bool artFocus, String labelKey, IconData icon})> _gameModeOptions =
+    [
+      (artFocus: false, labelKey: 'storyFocus', icon: Icons.menu_book),
+      (artFocus: true, labelKey: 'artFocus', icon: Icons.palette),
+    ];
 
 class MainMenuScreen extends StatefulWidget {
   final AudioService audioService;
@@ -87,23 +93,61 @@ class _MainMenuScreenState extends State<MainMenuScreen>
     }
   }
 
-  Widget _languageOption(({String code, String flag, String name}) option) {
-    final isSelected = option.code == _currentLang;
+  void _selectGameMode(bool artFocus) async {
+    _playMenuSfx();
+    setState(() {
+      _audio.artFocusMode = artFocus;
+      _menuPage = _MenuPage.settings;
+    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(kArtFocusModeKey, artFocus);
+    } catch (e) {
+      debugPrint('Error saving art mode preference: $e');
+    }
+  }
+
+  Widget _optionPill({
+    required Widget leading,
+    required String label,
+    required bool isSelected,
+    required VoidCallback onPressed,
+  }) {
     return ElevatedButton(
       style: _pillStyle(borderWidth: isSelected ? 2.5 : 1),
-      onPressed: () => _selectLanguage(option.code),
+      onPressed: onPressed,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(option.flag, style: const TextStyle(fontSize: 20)),
+          leading,
           const SizedBox(width: 12),
-          Text(option.name, style: const TextStyle(fontSize: 20)),
+          Text(label, style: const TextStyle(fontSize: 20)),
           if (isSelected) ...[
             const SizedBox(width: 8),
             const Icon(Icons.check, color: kDarkBrown, size: 20),
           ],
         ],
       ),
+    );
+  }
+
+  Widget _languageOption(({String code, String flag, String name}) option) {
+    return _optionPill(
+      leading: Text(option.flag, style: const TextStyle(fontSize: 20)),
+      label: option.name,
+      isSelected: option.code == _currentLang,
+      onPressed: () => _selectLanguage(option.code),
+    );
+  }
+
+  Widget _gameModeOption(
+    ({bool artFocus, String labelKey, IconData icon}) option,
+  ) {
+    return _optionPill(
+      leading: Icon(option.icon, color: kDarkBrown, size: 20),
+      label: ui(option.labelKey, _currentLang),
+      isSelected: _audio.artFocusMode == option.artFocus,
+      onPressed: () => _selectGameMode(option.artFocus),
     );
   }
 
@@ -261,18 +305,6 @@ class _MainMenuScreenState extends State<MainMenuScreen>
         ],
       ),
     );
-  }
-
-  void _toggleArtMode() async {
-    setState(() {
-      _audio.artFocusMode = !_audio.artFocusMode;
-    });
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(kArtFocusModeKey, _audio.artFocusMode);
-    } catch (e) {
-      debugPrint('Error saving art mode preference: $e');
-    }
   }
 
   Future<void> _startGame({required bool isNewGame}) async {
@@ -460,10 +492,9 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                           ),
                           const SizedBox(height: 20),
                           _menuButton(
-                            label: _audio.artFocusMode
-                                ? ui('artFocus', _currentLang)
-                                : ui('storyFocus', _currentLang),
-                            onPressed: _toggleArtMode,
+                            label: ui('gameMode', _currentLang),
+                            onPressed: () =>
+                                setState(() => _menuPage = _MenuPage.gameMode),
                           ),
                           const SizedBox(height: 20),
                           _menuButton(
@@ -476,9 +507,19 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                             onPressed: () =>
                                 setState(() => _menuPage = _MenuPage.main),
                           ),
-                        ] else ...[
+                        ] else if (_menuPage == _MenuPage.language) ...[
                           for (final option in languageOptions) ...[
                             _languageOption(option),
+                            const SizedBox(height: 12),
+                          ],
+                          _menuButton(
+                            label: ui('back', _currentLang),
+                            onPressed: () =>
+                                setState(() => _menuPage = _MenuPage.settings),
+                          ),
+                        ] else ...[
+                          for (final option in _gameModeOptions) ...[
+                            _gameModeOption(option),
                             const SizedBox(height: 12),
                           ],
                           _menuButton(
